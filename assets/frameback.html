@@ -1,0 +1,1344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frameback</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("review:theme2")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
+<style>
+:root,[data-theme="light"]{
+  --bg:#eceef1; --top:#f7f7f8; --card:#ffffff; --pill:#eef0f3; --pill2:#e3e6ea; --hover:#e9ebef; --line:#e6e8ec;
+  --text:#1d1f23; --text2:#3b3e44; --dim:#8b8e95; --ico:#2a2c31;
+  --strong:#24272c; --strongText:#fff; --tcbg:#6f7278; --tc:#fff;
+  --statusbg:#cfd5de; --menu:rgba(250,250,252,.92); --shadow:0 12px 40px rgba(20,25,35,.14),0 2px 6px rgba(20,25,35,.06);
+  --player:#0b0b0c; --glow:#5b8cff; --accent:#3d7ff5; --ok:#5cb85c; --warn:#e8c547; --blue:#3b8fe0; --scrollbar:#c9ccd2;
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  --bg:#0b0b0d; --top:#141518; --card:#18191d; --pill:#202127; --pill2:#2a2c33; --hover:#2a2c33; --line:#26272d;
+  --text:#ececf1; --text2:#d4d5db; --dim:#8d8f99; --ico:#ececf1;
+  --strong:#5b57f2; --strongText:#fff; --tcbg:#3b3315; --tc:#f2c94c;
+  --statusbg:#202127; --menu:rgba(24,25,29,.96); --shadow:0 12px 32px rgba(0,0,0,.6);
+  --player:#000; --glow:#8a86ff; --accent:#8f8cff; --scrollbar:#3a3b42;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Figtree,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;border-radius:10px;padding:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;color:var(--ico)}
+button:hover{background:var(--hover)}
+button:disabled{opacity:.4;cursor:default;background:none}
+.btn{background:var(--strong);color:var(--strongText);font-weight:600;padding:8px 14px;font-size:14px;border-radius:10px}
+.btn:hover{background:var(--strong);opacity:.88}
+.btn:disabled{background:var(--strong)}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ico.sm{width:15px;height:15px}
+.mono{font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)} .spacer{flex:1}
+.row{display:flex;align-items:center;gap:6px}
+::-webkit-scrollbar{width:10px} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:10px;border:3px solid var(--card)}
+
+/* top bar */
+#top{height:58px;display:flex;align-items:center;gap:6px;padding:0 14px;background:var(--top);border-bottom:1px solid var(--line)}
+.av{width:26px;height:26px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff}
+.av.lg{width:34px;height:34px;font-size:13px}
+#meAv{width:36px;height:36px;font-size:13.5px;cursor:pointer;margin-left:4px;box-shadow:0 0 0 2px var(--top),0 0 0 3px var(--line)}
+#crumb{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}
+#crumb .proj{color:var(--dim);overflow:hidden;text-overflow:ellipsis;font-weight:500}
+#fileBtn{font-weight:600;padding:6px 8px;max-width:440px;color:var(--text)}
+#fileBtn span{overflow:hidden;text-overflow:ellipsis}
+#statusBtn{background:var(--statusbg);padding:9px 14px;font-weight:600;color:var(--text);gap:10px}
+#statusBtn:hover{filter:brightness(.97)}
+.dot{width:11px;height:11px;border-radius:50%;flex:none;display:inline-block}
+#roundTxt{font-size:12.5px;margin-right:2px;white-space:nowrap;font-weight:500}
+#roundTxt.sent{color:#b8961a} #roundTxt.working,#roundTxt.received{color:var(--accent)} #roundTxt.done{color:var(--ok)}
+.ldot{width:9px;height:9px;border-radius:50%;background:var(--pill2);flex:none;margin:0 2px;cursor:help;transition:background-color .3s ease}
+.ldot.on{background:#30c45a;box-shadow:0 0 0 3px color-mix(in srgb,#30c45a 25%,transparent);animation:lpulse 2s ease-in-out infinite}
+.ldot.off{background:#9a9da4}
+@keyframes lpulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,#30c45a 0%,transparent)}}
+[data-theme="dark"] #roundTxt.sent{color:var(--warn)}
+#offline{background:var(--warn);color:#000;padding:6px 14px;font-weight:600;display:none}
+#panelBtn.on{background:var(--pill)}
+
+/* layout */
+main{flex:1;display:flex;min-height:0;gap:12px;padding:12px}
+#left{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+#stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-height:0;overflow:hidden;background:var(--player)}
+#stage video{max-width:100%;max-height:100%;display:block;min-width:0}
+#stage.side video{max-width:calc(50% - 3px)}
+#stage #vB{display:none}
+#stage.side #vB{display:block}
+#stage.wipe #vB{display:block;position:absolute;max-width:none;max-height:none}
+.vlabel{position:absolute;top:10px;background:#000b;color:#fff;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:600;display:none;z-index:4}
+#stage.side .vlabel,#stage.wipe .vlabel{display:block}
+#wipeLine{position:absolute;width:3px;background:#fff;margin-left:-1px;cursor:ew-resize;display:none;z-index:5}
+#wipeLine::after{content:"◂ ▸";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:11px;padding:3px 6px;border-radius:10px;white-space:nowrap}
+#stage.wipe #wipeLine{display:block}
+#ink,#safe{position:absolute;pointer-events:none;z-index:3}
+#ink.drawing{pointer-events:auto;cursor:crosshair}
+#drop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#9a9da4;text-align:center;padding:20px}
+#drop.hidden{display:none}
+#stage.dragover{outline:2px dashed var(--accent);outline-offset:-8px}
+#shuttle{position:absolute;top:10px;right:12px;background:#000b;color:#fff;padding:3px 9px;border-radius:6px;font-weight:700;display:none;z-index:6}
+
+/* timeline */
+#bar{position:relative;height:26px;cursor:pointer;user-select:none;touch-action:none;margin:8px 16px 0}
+#track{position:absolute;left:0;right:0;top:4px;height:4px;border-radius:4px;background:var(--pill2);transition:height .1s,top .1s}
+#buffered{position:absolute;left:0;top:4px;height:4px;border-radius:4px;background:var(--scrollbar);transition:height .1s,top .1s}
+#played{position:absolute;left:0;top:4px;height:4px;border-radius:4px;background:var(--strong);transition:height .1s,top .1s}
+#bar:hover #track,#bar:hover #buffered,#bar:hover #played{height:6px;top:3px}
+#range{position:absolute;top:-1px;height:14px;background:color-mix(in srgb,var(--accent) 28%,transparent);border:1.5px solid var(--accent);border-radius:5px;display:none;z-index:3}
+#range.edit{cursor:grab}
+#range.edit.dragging{cursor:grabbing;transition:none}
+#range .rh{display:none;position:absolute;top:-4px;width:12px;height:20px;background:var(--accent);border-radius:4px;cursor:ew-resize;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+#range .rh::after{content:"";position:absolute;left:5px;top:6px;width:2px;height:8px;background:rgba(255,255,255,.85);border-radius:1px}
+#range .rh.l{left:-13px;border-radius:5px 2px 2px 5px} #range .rh.r{right:-13px;border-radius:2px 5px 5px 2px}
+#range.edit .rh{display:block}
+#range .rh:hover{transform:scaleY(1.1)}
+#range .rlab{display:none;position:absolute;bottom:17px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;white-space:nowrap;pointer-events:none}
+#range.edit .rlab{display:block}
+#tcChip .rx{margin-left:4px;opacity:.75;font-size:11px}
+#tcChip .rx:hover{opacity:1}
+#head{position:absolute;top:-1px;width:12px;height:12px;border-radius:50%;background:var(--strong);margin-left:-6px;pointer-events:none;box-shadow:0 0 0 2px var(--card)}
+.mark{position:absolute;top:12px;width:14px;height:14px;margin-left:-7px;border-radius:50%;font-size:7.5px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;z-index:2;box-shadow:0 0 0 1.5px var(--card)}
+.mark.done{opacity:.4}
+.mark:hover,.mark.active{transform:scale(1.35);z-index:3}
+#hover{position:absolute;bottom:30px;transform:translateX(-50%);background:var(--menu);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:12px;padding:5px;display:none;z-index:10;pointer-events:none;text-align:center;font-size:12px;box-shadow:var(--shadow)}
+#hover canvas{display:block;border-radius:7px;margin-bottom:3px}
+#hover .card{max-width:240px;text-align:left;padding:4px 6px;white-space:normal}
+
+/* control bar */
+#controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:2px 12px 10px}
+#controls .l,#controls .r{display:flex;align-items:center;gap:2px}
+#controls .r{justify-content:flex-end}
+#speedBtn{font-size:13px;min-width:44px;font-weight:600;color:var(--text2)}
+#volWrap{display:flex;align-items:center}
+#vol{width:0;opacity:0;transition:width .15s,opacity .15s;accent-color:var(--strong)}
+#volWrap:hover #vol{width:80px;opacity:1}
+#tcBox{display:flex;align-items:center;gap:2px}
+#tc{background:var(--pill);border-radius:10px;padding:6px 12px;font-size:15px;font-weight:600;cursor:text}
+#tc:hover{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.tedit{background:transparent;border:0;outline:none;color:inherit;font:inherit;font-variant-numeric:tabular-nums;padding:0;margin:0;text-align:center}
+#tc:has(.tedit){box-shadow:inset 0 0 0 2px var(--accent)}
+#tcChip .rt{cursor:text;border-radius:3px;padding:0 1px}
+#tcChip .rt:hover{background:rgba(255,255,255,.18);outline:1px solid currentColor}
+#tcChip .rt .tedit{width:84px!important;text-align:left;color:inherit}
+#loopBtn.on,#safeBtn.on{background:var(--pill2)}
+#fps{width:72px;background:var(--pill);border:0;border-radius:8px;padding:5px 8px;margin-left:6px}
+
+/* menus */
+.menu{position:fixed;z-index:30;background:var(--menu);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:16px;padding:7px;box-shadow:var(--shadow);min-width:220px;max-height:72vh;overflow:auto}
+.menu .it{padding:10px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text)}
+.menu .it:hover{background:var(--hover)}
+.menu .it .ck{margin-left:auto;padding-left:18px;font-size:16px}
+.menu .hd{padding:8px 12px 4px;font-size:12px;color:var(--dim);font-weight:600}
+.menu .sep{height:1px;background:var(--line);margin:5px 4px}
+.menu .emo{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:4px}
+.menu .emo span{font-size:19px;cursor:pointer;text-align:center;border-radius:7px;padding:3px}
+.menu .emo span:hover{background:var(--hover)}
+
+/* side card */
+:root{--sideW:clamp(290px,31vw,400px)}
+aside{width:var(--sideW);flex:none;display:flex;flex-direction:column;background:var(--card);border-radius:20px;min-height:0;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;
+  transition:width .32s cubic-bezier(.2,.8,.2,1),opacity .25s ease,margin .32s cubic-bezier(.2,.8,.2,1)}
+aside > *{width:var(--sideW);flex-shrink:0}
+aside > #cPane,aside > #info{flex-shrink:1}
+aside.hidden{width:0;opacity:0;margin-left:-12px}
+#sideHead{display:flex;align-items:center;gap:2px;padding:16px 14px 6px 22px}
+#sideHead h2{margin:0;font-size:20px;font-weight:600;flex:1;letter-spacing:-.01em}
+#tabs{display:flex;margin:8px 16px 4px;background:var(--pill);border-radius:12px;padding:4px}
+#tabs button{flex:1;padding:8px;border-radius:9px;color:var(--text);font-weight:600;font-size:15px;gap:8px}
+#tabs button .n{color:var(--dim);font-weight:500}
+#tabs button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+#listBar{display:flex;align-items:center;gap:2px;padding:8px 14px 4px 16px}
+#filterBtn,#sortBtn{font-weight:600;padding:6px 8px;font-size:15px;color:var(--text)}
+#doneBtn.on{background:var(--pill)}
+#searchRow{display:none;padding:2px 16px 8px}
+#searchRow.show{display:block}
+#search{width:100%;background:var(--pill);border:0;border-radius:10px;padding:9px 12px;outline:none}
+#list{flex:1;overflow:auto;padding:4px 8px}
+#empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--dim);padding:20px;text-align:center}
+.c{padding:14px 12px;cursor:pointer;display:flex;gap:12px;border-radius:14px;position:relative}
+.c:hover{background:color-mix(in srgb,var(--pill) 60%,transparent)}
+.c.active{background:var(--pill)}
+.body{flex:1;min-width:0}
+.meta{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dim)}
+.meta b{color:var(--dim);font-weight:600;font-size:15px}
+.tcchip{background:var(--tcbg);color:var(--tc);border-radius:6px;padding:2px 7px;font-weight:600;font-size:13.5px;white-space:nowrap;margin-right:6px;display:inline-block;line-height:1.35}
+.c .txt{margin-top:5px;white-space:pre-wrap;word-break:break-word;color:var(--text2);font-size:15px}
+.c.done .txt{color:var(--dim)}
+.c img.att{display:block;max-width:100%;max-height:170px;border-radius:10px;margin-top:8px}
+.chk{width:20px;height:20px;border-radius:50%;border:1.8px solid var(--dim);flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin-left:auto;color:transparent}
+.chk svg{width:12px;height:12px;stroke-width:3}
+.chk:hover{border-color:var(--text)}
+.chk.on{background:var(--strong);border-color:var(--strong);color:var(--strongText)}
+.cmore{opacity:0;padding:3px}
+.c:hover .cmore{opacity:1}
+.acts{display:flex;align-items:center;gap:6px;margin-top:8px}
+.pillbtn{background:var(--pill);border-radius:9px;padding:5px 11px;font-weight:600;font-size:14px;color:var(--text)}
+.pillbtn:hover{background:var(--pill2)}
+.rtoggle{font-weight:600;font-size:14px;padding:5px 8px;color:var(--text)}
+.replies{margin-top:4px}
+.reply{display:flex;gap:10px;margin-top:12px}
+.reply .txt{margin-top:3px}
+.reply.claude .meta b{color:#c96442}
+.rbox{display:flex;gap:6px;margin-top:8px}
+.rbox input{flex:1;min-width:0;background:var(--pill);border:0;border-radius:10px;padding:8px 11px;outline:none}
+#info{flex:1;overflow:auto;padding:8px 22px;display:none}
+#info dl{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;margin:8px 0}
+#info dt{color:var(--dim)} #info dd{margin:0;word-break:break-word;font-weight:500}
+
+/* composer */
+#drawBar{display:none;align-items:center;gap:6px;padding:8px 16px 0}
+#drawBar.show{display:flex}
+.seg{display:inline-flex;background:var(--pill);border-radius:10px;padding:3px}
+.seg button{padding:5px 8px;border-radius:8px;color:var(--dim)}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.sw{width:18px;height:18px;border-radius:50%;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.sw.on{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--text)}
+#compose{margin:10px 12px 12px;background:var(--pill);border-radius:16px;padding:12px 12px 8px}
+#compose.locked{opacity:.5;pointer-events:none}
+#cRow{display:flex;align-items:flex-start;gap:6px}
+#tcChip{cursor:pointer;margin-top:1px;user-select:none}
+#tcChip.off{background:var(--pill2);color:var(--dim)}
+#txt{flex:1;min-height:22px;max-height:140px;resize:none;background:none;border:0;outline:none;color:var(--text);padding:1px 0;overflow:auto;font-size:15px}
+#txt::placeholder{color:var(--dim)}
+#attPrev{display:none;margin:8px 0 0;position:relative;width:max-content}
+#attPrev img{max-height:70px;border-radius:8px;display:block}
+#attPrev button{position:absolute;top:-6px;right:-6px;background:var(--card);width:20px;height:20px;padding:0;border-radius:50%;font-size:11px;box-shadow:var(--shadow)}
+#cTools{display:flex;align-items:center;gap:0;margin-top:8px}
+#cTools .ib{color:var(--dim);padding:6px} #cTools .ib:hover{color:var(--text);background:var(--pill2)} #cTools .ib.on{color:var(--text);background:var(--pill2)}
+#postBtn{background:var(--strong);color:var(--strongText);width:34px;height:34px;padding:0;border-radius:10px}
+#postBtn:hover{background:var(--strong);opacity:.88}
+
+
+/* ---------- toast: dot opens into a pill, count rolls, Undo morphs in place ---------- */
+#toast{position:fixed;left:50%;bottom:104px;height:46px;width:46px;transform:translateX(-50%) scale(0);opacity:0;background:#141416;color:#fff;border-radius:999px;display:none;align-items:center;overflow:hidden;z-index:50;
+  box-shadow:0 14px 34px rgba(0,0,0,.38),0 2px 6px rgba(0,0,0,.2),inset 0 0 0 1px rgba(255,255,255,.07);
+  transition:width .55s cubic-bezier(.34,1.32,.64,1),transform .45s cubic-bezier(.34,1.56,.64,1),opacity .25s ease}
+#toast.on{display:flex}
+#toast.pop{transform:translateX(-50%) scale(1);opacity:1}
+#toast.leave{transform:translate(-50%,34px) scale(.7);opacity:0;transition:transform .4s cubic-bezier(.5,0,.75,0),opacity .35s ease,width .4s ease}
+#toast .tin{display:flex;align-items:center;gap:10px;padding:0 8px;width:max-content;white-space:nowrap}
+#toast .ticon{width:30px;height:30px;border-radius:50%;background:#30c45a;display:flex;align-items:center;justify-content:center;flex:none;transition:background-color .3s ease,transform .45s cubic-bezier(.34,1.56,.64,1)}
+#toast .ticon svg{width:16px;height:16px;stroke-width:3}
+#toast .ticon.warn{background:#f0a630} #toast .ticon.undo{background:#5d5f66}
+#toast .ticon.spin{transform:rotate(-360deg)}
+#toast .tmsg,#toast .tcount,#toast .tundo{opacity:0;filter:blur(5px);transition:opacity .25s ease,filter .25s ease}
+#toast.open .tmsg,#toast.open .tcount,#toast.open .tundo{opacity:1;filter:none;transition-delay:.14s}
+#toast .tmsg{font-weight:600;font-size:14px;padding-right:6px}
+#toast .tmsg.swap{animation:msgSwap .32s ease}
+#toast .tcount{position:relative;height:20px;min-width:22px;padding:0 6px;border-radius:10px;background:rgba(255,255,255,.15);font-size:12px;font-weight:700;overflow:hidden;display:none;text-align:center}
+#toast .tcount.show{display:inline-block}
+#toast .tcount span{display:block;line-height:20px}
+#toast .tcount span.in{animation:rollIn .34s cubic-bezier(.34,1.4,.64,1)}
+#toast .tcount span.out{position:absolute;left:0;right:0;top:0;animation:rollOut .3s ease forwards}
+#toast .tundo{display:none;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 13px;font-weight:700;font-size:13px;margin-right:-2px}
+#toast .tundo.show{display:inline-flex}
+#toast .tundo:hover{background:rgba(255,255,255,.24)}
+@keyframes rollIn{from{transform:translateY(105%)}to{transform:none}}
+@keyframes rollOut{to{transform:translateY(-105%)}}
+@keyframes msgSwap{0%{opacity:0;filter:blur(6px);transform:translateY(6px)}100%{opacity:1;filter:none;transform:none}}
+#keys,#dlg{position:fixed;inset:0;background:rgba(10,12,16,.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:40}
+#keys.show,#dlg.show{display:flex}
+#keys>div{background:var(--card);border-radius:18px;padding:20px 24px;columns:2;column-gap:30px;max-width:660px;box-shadow:var(--shadow)}
+#keys p{margin:4px 0;break-inside:avoid}
+kbd{background:var(--pill);border-radius:6px;padding:1px 6px;font-size:12px;font-family:inherit;font-weight:600}
+#dlgF{background:var(--card);border-radius:18px;padding:18px;width:min(440px,92vw);box-shadow:var(--shadow)}
+#dlgT{font-weight:600;margin-bottom:10px;font-size:16px}
+#dlgI{width:100%;background:var(--pill);border:0;border-radius:10px;padding:10px;color:var(--text);resize:vertical;outline:none}
+#left:fullscreen{border-radius:0}
+/* ---------- responsive: keep things usable when the window gets small ---------- */
+button,.btn{white-space:nowrap}
+#top > *{flex-shrink:0}
+#top > #crumb{flex-shrink:1;min-width:0}
+#fileBtn{min-width:0}
+.short{display:none}
+#chooseBtn{margin-left:8px;gap:6px;flex-shrink:0}
+@media (max-width:1150px){ #roundTxt{display:none} }
+@media (max-width:1060px){ #chooseBtn .cl{display:none} #chooseBtn{padding:6px 9px} }
+@media (max-width:980px){ #crumb .proj,#crumb .dim{display:none} #statusLbl{display:none} #statusBtn{padding:9px 11px} }
+@media (max-width:820px){ #topSearch{display:none} #volWrap #vol{display:none} }
+@media (max-width:640px){
+  :root{--sideW:100%}
+  body{overflow:auto}
+  main{flex-direction:column;overflow:visible;flex:none;min-height:calc(100vh - 58px)}
+  #left{flex:none;height:62vh;min-height:320px}
+  aside{width:100%;flex:none;min-height:70vh;transition:opacity .25s ease}
+  aside.hidden{display:none}
+  #top{padding:0 8px;gap:2px}
+  #top{flex-shrink:0}
+  #speedBtn{min-width:34px;padding:7px 4px}
+  #controls{padding:2px 4px 8px}
+  #controls button{padding:6px}
+  #tc{font-size:13px;padding:5px 8px}
+  #tcMenu{display:none}
+}
+@media (max-height:520px) and (min-width:641px){ #top{height:46px} main{padding:8px;gap:8px} #bar{margin-top:4px} }
+
+/* ---------- motion ---------- */
+button,.btn,.pillbtn,.chk,.sw,.seg button,#tabs button,.tcchip,.c,#statusBtn,.dot{transition:background-color .18s ease,color .18s ease,box-shadow .18s ease,opacity .18s ease,transform .12s ease,border-color .18s ease}
+button:active:not(:disabled){transform:scale(.95)}
+.btn:active:not(:disabled),#postBtn:active{transform:scale(.96)}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.menu{animation:popIn .16s cubic-bezier(.2,.8,.2,1);transform-origin:top}
+#dlg.show,#keys.show{animation:fadeIn .18s ease}
+#dlg.show #dlgF,#keys.show>div{animation:cardIn .22s cubic-bezier(.2,.8,.2,1)}
+.c.new{animation:rise .32s cubic-bezier(.2,.8,.2,1)}
+.replies,.rbox{animation:slideDown .2s ease}
+#drawBar.show,#searchRow.show,#attPrev{animation:slideDown .2s ease}
+#cPane,#info{animation:fadeIn .2s ease}
+#empty{animation:fadeIn .3s ease}
+.mark{transition:transform .15s ease,opacity .2s ease,box-shadow .15s ease}
+#hover{animation:fadeIn .12s ease}
+#shuttle{animation:fadeIn .15s ease}
+#playBtn svg{transition:transform .15s ease}
+#playBtn:active svg{transform:scale(.85)}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1} ::view-transition-new(root){z-index:2}
+#themeBtn svg{transition:transform .5s cubic-bezier(.65,0,.35,1)}
+#themeBtn:hover svg{transform:rotate(25deg)}
+#sendBtn{border-radius:999px;padding:8px 20px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="offline">Notes can't sync and Send is off. Start it with frameback.py serve (or the Frameback.bat it creates).</div>
+<div id="top">
+  <button id="openBtn" title="Open another video"><i data-i="chevL"></i></button>
+  <div id="crumb"><span class="proj" id="stackName">No video</span><span class="dim">/</span>
+    <button id="fileBtn" title="Versions"><span id="fileName">—</span><i data-i="chevD" class="sm"></i></button></div>
+  <button id="chooseBtn" class="pillbtn" title="Pick a video from your computer to review"><i data-i="folder" class="sm"></i><span class="cl">Choose video</span></button>
+  <span class="spacer"></span>
+  <span id="roundTxt" class="dim"></span>
+  <span class="ldot" id="listenDot"></span>
+  <button id="statusBtn" title="Review status of this version"><span class="dot" id="statusDot"></span><span id="statusLbl">Set status</span><i data-i="chevD"></i></button>
+  <button id="panelBtn" class="on" title="Show / hide comments"><i data-i="msg"></i></button>
+  <button class="btn" id="sendBtn" title="Submit open comments for editing"><span id="sendLbl">Submit</span></button>
+  <button id="themeBtn" title="Light / dark mode (T)"><i data-i="sun"></i></button>
+  <button id="kebabBtn" title="More"><i data-i="kebab"></i></button>
+  <button id="topSearch" title="Search comments"><i data-i="search"></i></button>
+  <span class="av" id="meAv" title="Your name">?</span>
+  <a id="dlLink" hidden></a>
+  <input type="file" id="fileInput" accept="video/*,.mp4,.mov,.webm,.m4v,.mkv" hidden>
+</div>
+<main>
+  <div id="left">
+    <div id="stage">
+      <video id="v" preload="auto" playsinline crossorigin="anonymous"></video>
+      <video id="vB" preload="auto" playsinline muted crossorigin="anonymous"></video>
+      <span class="vlabel" id="labA"></span><span class="vlabel" id="labB"></span>
+      <div id="wipeLine"></div>
+      <canvas id="safe"></canvas>
+      <canvas id="ink"></canvas>
+      <div id="shuttle"></div>
+      <div id="drop"><div style="font-size:18px;color:var(--text)">Drop a video here</div><div>or click ‹ at the top left</div></div>
+    </div>
+    <div id="bar"><div id="track"></div><div id="buffered"></div><div id="played"></div><div id="range"><span class="rh l" title="Drag to set the start"></span><span class="rlab"></span><span class="rh r" title="Drag to set the end"></span></div><div id="head"></div><div id="marks"></div><div id="hover"><canvas id="thumb" width="90" height="160"></canvas><div id="hoverT" class="mono"></div></div></div>
+    <div id="controls">
+      <div class="l">
+        <button id="playBtn" title="Play / pause (Space)"><i data-i="play"></i></button>
+        <button id="loopBtn" title="Loop (loops the range if one is set)"><i data-i="repeat"></i></button>
+        <button id="speedBtn" title="Playback speed">1.0x</button>
+        <span id="volWrap"><button id="muteBtn" title="Mute (M)"><i data-i="vol"></i></button><input type="range" id="vol" min="0" max="1" step="0.05" value="1"></span>
+      </div>
+      <div id="tcBox"><span class="mono" id="tc">00:00:00:00</span><button id="tcMenu" title="Time format"><i data-i="chevD" class="sm"></i></button></div>
+      <div class="r">
+        <button id="safeBtn" title="Safe zones for TikTok / Reels / Shorts (S)"><i data-i="safe"></i></button>
+        <button id="gearBtn" title="Compare versions, FPS, shortcuts"><i data-i="gear"></i></button>
+        <button id="fsBtn" title="Fullscreen (F)"><i data-i="max"></i></button>
+      </div>
+    </div>
+  </div>
+  <aside id="side">
+    <div id="sideHead"><h2>Comments</h2>
+      <button id="searchBtn" title="Search"><i data-i="search"></i></button>
+      <button id="moreBtn" title="Comment settings"><i data-i="gear"></i></button>
+      <button id="closeSide" title="Close"><i data-i="x"></i></button></div>
+    <div id="tabs"><button class="on" data-tab="comments">Comments <span class="n" id="nAll">0</span></button><button data-tab="info">Fields</button></div>
+    <div id="cPane" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div id="listBar">
+        <button id="filterBtn"><span id="filterLbl">All comments</span><i data-i="chevD" class="sm"></i></button>
+        <span class="spacer"></span>
+        <button id="sortBtn" title="Sort"><span id="sortLbl">Timecode</span><i data-i="chevD" class="sm"></i></button>
+        <button id="doneBtn" title="Hide resolved"><i data-i="filter"></i></button>
+      </div>
+      <div id="searchRow"><input type="search" id="search" placeholder="Search comments"></div>
+      <div id="list"></div>
+      <div id="drawBar">
+        <span class="seg" id="toolSeg"><button data-t="pen" title="Pen (D)"><i data-i="pen" class="sm"></i></button><button data-t="arrow" title="Arrow (A)"><i data-i="arrow" class="sm"></i></button><button data-t="rect" title="Box (B)"><i data-i="rect" class="sm"></i></button><button data-t="ellipse" title="Circle (E)"><i data-i="circle" class="sm"></i></button></span>
+        <span id="swatches" class="row" style="gap:7px;margin-left:6px"></span>
+        <span class="spacer"></span>
+        <button class="ib" id="undoInk" title="Undo (Ctrl+Z)"><i data-i="undo" class="sm"></i></button>
+        <button class="ib" id="clearShapes" title="Clear drawing"><i data-i="trash" class="sm"></i></button>
+      </div>
+      <div id="compose">
+        <div id="cRow"><span class="tcchip mono" id="tcChip" title="Pinned to this frame. Click for a general comment">00:00:00:00</span>
+          <textarea id="txt" rows="1" placeholder="Leave your comment..."></textarea></div>
+        <div id="attPrev"><img id="attImg"><button id="attX" title="Remove">✕</button></div>
+        <div id="cTools">
+          <button class="ib" id="rangeBtn" title="Range: click, then drag its ends on the timeline (or press I / O)"><i data-i="range"></i></button>
+          <button class="ib" id="attBtn" title="Attach a reference image"><i data-i="clip"></i></button>
+          <button class="ib" id="emoBtn" title="Emoji"><i data-i="smile"></i></button>
+          <button class="ib" id="drawBtn" title="Draw and shapes (D)"><i data-i="pen"></i></button>
+          <span class="spacer"></span>
+          <button id="postBtn" title="Post (Enter)"><i data-i="send" class="sm"></i></button>
+          <input type="file" id="attFile" accept="image/*" hidden>
+        </div>
+      </div>
+    </div>
+    <div id="info"></div>
+  </aside>
+</main>
+<div id="keys"><div>
+  <p><kbd>Space</kbd> play / pause</p><p><kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> reverse · stop · forward (again = faster)</p>
+  <p><kbd>←</kbd> <kbd>→</kbd> one frame</p><p><kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> one second</p>
+  <p><kbd>G</kbd> or click the timecode: type a time to jump</p><p>Click a range time to type it</p>
+  <p><kbd>Home</kbd> / <kbd>End</kbd> start / end</p><p><kbd>C</kbd> or <kbd>Enter</kbd> write a comment</p>
+  <p><kbd>I</kbd> / <kbd>O</kbd> range in / out</p><p><kbd>Shift</kbd>+drag timeline = range</p>
+  <p><kbd>D</kbd> draw · <kbd>A</kbd> arrow · <kbd>B</kbd> box · <kbd>E</kbd> circle</p><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo shape</p>
+  <p><kbd>[</kbd> / <kbd>]</kbd> previous / next comment</p><p><kbd>S</kbd> safe zones · <kbd>F</kbd> fullscreen · <kbd>M</kbd> mute</p>
+  <p><kbd>Esc</kbd> cancel / close</p><p><kbd>?</kbd> this list</p>
+</div></div>
+<div id="dlg"><form id="dlgF"><div id="dlgT"></div><textarea id="dlgI" rows="3"></textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button type="button" id="dlgNo">Cancel</button><button type="submit" class="btn" id="dlgYes">OK</button></div></form></div>
+<div id="toast" role="status" aria-live="polite"><div class="tin"><span class="ticon"></span><span class="tmsg"></span><span class="tcount"></span><button class="tundo">Undo</button></div></div>
+<script>
+const $ = id => document.getElementById(id);
+// ---------------- icons ----------------
+const ICONS = {
+  chevL:'<path d="m15 18-6-6 6-6"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', chevD:'<path d="m6 9 6 6 6-6"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  panel:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>',
+  play:'<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>', pause:'<rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"/>',
+  repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  vol:'<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>',
+  mute:'<path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>',
+  safe:'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="7" width="8" height="10" rx="1"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  max:'<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/>',
+  filter:'<circle cx="12" cy="12" r="9"/><path d="M8 10h8M9.5 13.5h5M11 17h2"/>', sort:'<path d="M4 6h16M4 12h11M4 18h6"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  more:'<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
+  range:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2h5"/>',
+  clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
+  smile:'<circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+  arrow:'<path d="M6 18 18 6M9 6h9v9"/>', rect:'<rect x="4" y="5" width="16" height="14" rx="1.5"/>', circle:'<circle cx="12" cy="12" r="8.5"/>',
+  undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  msg:'<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4 3.5V17H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 9h8M8 12.5h5"/>',
+  kebab:'<circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>', chevU:'<path d="m6 15 6-6 6 6"/>', check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  alert:'<path d="M12 7v6"/><path d="M12 17h.01"/>',
+  bubble:'<path d="M5 8a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-2l-3 3v-3H8a3 3 0 0 1-3-3z" style="fill:var(--pill2)" stroke="none"/><path d="M2 11a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H8l-3 3v-3a3 3 0 0 1-3-3z" style="fill:var(--scrollbar)" stroke="none"/><circle cx="7" cy="13.5" r=".9" style="fill:var(--card)" stroke="none"/><circle cx="9.5" cy="13.5" r=".9" style="fill:var(--card)" stroke="none"/><circle cx="12" cy="13.5" r=".9" style="fill:var(--card)" stroke="none"/>',
+};
+const icon = (n, cls='') => `<svg class="ico ${cls}" viewBox="0 0 24 24">${ICONS[n]||''}</svg>`;
+function hydrateIcons(root=document){ root.querySelectorAll('i[data-i]').forEach(i => { i.outerHTML = icon(i.dataset.i, i.className) }) }
+hydrateIcons();
+const setIcon = (btn, n) => { const s = btn.querySelector('svg'); if(s) s.innerHTML = ICONS[n] };
+
+const v = $('v'), vB = $('vB'), stage = $('stage'), ink = $('ink'), ictx = ink.getContext('2d'), safeC = $('safe');
+const COLORS = ['#ff3b6b','#f2c94c','#3ecf8e','#4da3ff','#ffffff'];
+const AV = ['#e5484d','#5b57f2','#2fb37a','#e39a2d','#3b95e0','#b45fe0','#d9534f'];
+const SPEEDS = [0.25,0.5,1,1.5,2];
+let online = false, fps = 30, file = null, doc = {rev:0, notes:[]}, stacks = {stacks:{}, last:null}, stackKey = null;
+let activeId = null, inF = null, outF = null, useRange = false, useTc = true, loopOn = false;
+let drawMode = false, tool = 'pen', color = COLORS[0], shapes = [], cur = null, attach = null;
+let tcMode = 0, showSafe = false, revRate = 0, cmp = 'off', wipe = 0.5, lastFrame = -1, replyOpen = null;
+let filterMode = 'all', sortMode = 'tc', hideDone = false, speed = 1; const openReplies = new Set(); let seenIds = null;
+let me = lsGet('review:me') || '';
+
+function lsGet(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+function lsSet(k,x){ try{ localStorage.setItem(k,x) }catch(e){} }
+function ask(title, value, okLabel='OK'){
+  return new Promise(res => {
+    const d=$('dlg'), i=$('dlgI'), input = value!==undefined;
+    $('dlgT').textContent=title; $('dlgYes').textContent=okLabel; i.style.display=input?'':'none'; i.value=value??'';
+    i.rows = String(value||'').length > 40 ? 4 : 1;
+    d.classList.add('show'); setTimeout(()=> input ? (i.focus(), i.select()) : $('dlgYes').focus());
+    const done = r => { d.classList.remove('show'); $('dlgF').onsubmit=$('dlgNo').onclick=i.onkeydown=null; res(r) };
+    $('dlgF').onsubmit = e => { e.preventDefault(); done(input ? i.value : true) };
+    $('dlgNo').onclick = () => done(input ? null : false);
+    i.onkeydown = e => { e.stopPropagation(); if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); done(i.value) } if(e.key==='Escape') done(null) };
+  });
+}
+const confirmBox = (msg, ok='OK') => ask(msg, undefined, ok);
+// ---------- toast: a dot opens into the message; repeats roll the count; Undo morphs it in place ----------
+let tState = 'hidden', tTimer = null, tTimers = [], tCount = 0, tUndo = null, tCommit = null;
+const tEl = () => $('toast');
+function tFit(){ const el = tEl(); el.style.width = el.querySelector('.tin').scrollWidth + 'px' }
+function tIcon(kind){ const i = tEl().querySelector('.ticon'); i.className = 'ticon ' + (kind==='check' ? '' : kind); i.innerHTML = icon(kind==='warn' ? 'alert' : kind==='undo' ? 'undo' : 'check') }
+function tMsg(text, swap){ const m = tEl().querySelector('.tmsg'); m.textContent = text; if(swap){ m.classList.remove('swap'); void m.offsetWidth; m.classList.add('swap') } }
+function tSetCount(n, roll){
+  const c = tEl().querySelector('.tcount'); c.classList.toggle('show', n > 1);
+  if(!roll){ c.innerHTML = `<span>${n}</span>`; return }
+  const old = c.querySelector('span:not(.out)'); if(old){ old.className = 'out'; setTimeout(()=>old.remove(), 320) }
+  const s = document.createElement('span'); s.className = 'in'; s.textContent = n; c.appendChild(s);
+}
+function tSetUndo(fn){ tUndo = fn || null; tEl().querySelector('.tundo').classList.toggle('show', !!fn) }
+function tArm(ms){ clearTimeout(tTimer); tTimer = setTimeout(tClose, ms) }
+function tFlushCommit(){ const c = tCommit; tCommit = null; if(c) c() }
+function toast(text, opts={}){
+  const el = tEl();
+  const kind = opts.kind || (/first|^No |blocked|elsewhere|Add another|Bad file|Nothing/i.test(text) ? 'warn' : 'check');
+  tFlushCommit();
+  tTimers.forEach(clearTimeout); tTimers = [];
+  if(tState === 'hidden' || tState === 'closing'){
+    tCount = 1;
+    el.className = 'on'; el.style.width = '46px';
+    tIcon(kind); tMsg(text); tSetCount(1); tSetUndo(opts.undo);
+    void el.offsetWidth;
+    el.classList.add('pop');                                                    // the dot pops in
+    tTimers.push(setTimeout(() => { el.classList.add('open'); tFit() }, 300));  // then opens into the message
+  } else {
+    tCount++; tIcon(kind); tMsg(text, true); tSetCount(tCount, true); tSetUndo(opts.undo); tFit();
+  }
+  tCommit = opts.commit || null;
+  tState = 'open';
+  tArm(opts.undo ? 5000 : 2600);
+}
+function tClose(){
+  const el = tEl(); if(tState === 'hidden') return;
+  tState = 'closing'; tFlushCommit();
+  el.classList.remove('open');
+  tTimers.push(setTimeout(() => { el.style.width = '46px' }, 160));   // folds back into the dot
+  tTimers.push(setTimeout(() => el.classList.add('leave'), 620));     // and slips away
+  tTimers.push(setTimeout(() => { el.className = ''; tState = 'hidden'; tSetUndo(null) }, 1050));
+}
+(function(){
+  const el = tEl();
+  el.querySelector('.tundo').onclick = () => {
+    const fn = tUndo; if(!fn) return;
+    tCommit = null; tSetUndo(null); fn();
+    tIcon('undo'); el.querySelector('.ticon').classList.add('spin');
+    tMsg('Undone', true); tSetCount(0); tFit(); tArm(1400);
+  };
+  el.addEventListener('mouseenter', () => clearTimeout(tTimer));
+  el.addEventListener('mouseleave', () => { if(tState === 'open') tArm(1600) });
+  window.addEventListener('beforeunload', tFlushCommit);
+})();
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hash = s => [...String(s)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7);
+let AGENT = 'Claude';
+const avColor = n => n===AGENT ? '#c96442' : AV[Math.abs(hash(n))%AV.length];
+const initials = n => String(n||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const avatar = (n,lg) => `<span class="av${lg?' lg':''}" style="background:${avColor(n)}">${esc(initials(n))}</span>`;
+function ago(iso){ const s=(Date.now()-new Date(iso))/1000; if(s<60)return 'just now'; if(s<3600)return Math.floor(s/60)+'m ago'; if(s<86400)return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago' }
+function setMe(n){ me = n; lsSet('review:me', me); const a=$('meAv'); a.textContent = initials(me); a.style.background = avColor(me); a.title = me }
+if(me) setMe(me);
+
+// ---------------- menus ----------------
+function menu(anchor, items, align='left'){
+  closeMenus();
+  const m = document.createElement('div'); m.className = 'menu';
+  for(const it of items){
+    if(it === '-'){ m.insertAdjacentHTML('beforeend','<div class="sep"></div>'); continue }
+    if(it.head){ m.insertAdjacentHTML('beforeend',`<div class="hd">${esc(it.head)}</div>`); continue }
+    if(it.html){ const d=document.createElement('div'); d.innerHTML=it.html; it.bind?.(d); m.appendChild(d); continue }
+    const d = document.createElement('div'); d.className = 'it';
+    d.innerHTML = `${it.dot?`<span class="dot" style="background:${it.dot}"></span>`:''}<span>${esc(it.label)}</span>${it.on?`<span class="ck">${icon('check','sm')}</span>`:''}`;
+    if(!it.dot && it.on===undefined) d.style.paddingLeft='12px';
+    d.onclick = () => { closeMenus(); it.click() };
+    m.appendChild(d);
+  }
+  document.body.appendChild(m);
+  const b = anchor.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  let x = align==='right' ? b.right - mr.width : align==='center' ? b.left + b.width/2 - mr.width/2 : b.left;
+  let y = b.bottom + 6; if(y + mr.height > innerHeight - 8) y = b.top - mr.height - 6;
+  m.style.left = Math.max(8, Math.min(innerWidth - mr.width - 8, x)) + 'px'; m.style.top = Math.max(8, y) + 'px';
+  setTimeout(()=>document.addEventListener('pointerdown', function h(e){ if(!m.contains(e.target)){ m.remove(); document.removeEventListener('pointerdown',h) } }));
+  return m;
+}
+function closeMenus(){ document.querySelectorAll('.menu').forEach(m=>m.remove()) }
+
+// ---------------- api ----------------
+async function api(path, opt={}){
+  const r = await fetch(path, {...opt, headers:{'Content-Type':'application/json'}, cache:'no-store'});
+  const j = await r.json().catch(()=>null);
+  return {ok:r.ok, status:r.status, data:j};
+}
+async function loadDoc(){
+  if(online){ const r = await api('/api/doc?file='+encodeURIComponent(file)); doc = r.data || {rev:0,notes:[]} }
+  else doc = JSON.parse(lsGet('review:'+file) || 'null') || {rev:0,notes:[]};
+  doc.notes ||= [];
+  if(doc.fps) fps = doc.fps;
+}
+async function save(){
+  doc.fps = fps; doc.file = file; doc.rev = (doc.rev||0) + 1;
+  if(!online){ lsSet('review:'+file, JSON.stringify(doc)); return }
+  const r = await api('/api/doc?file='+encodeURIComponent(file), {method:'PUT', body:JSON.stringify(doc)});
+  if(r.status === 409){ doc = r.data; render(); toast('Comments changed elsewhere, reloaded. Try again.') }
+}
+async function saveStacks(){ if(online) await api('/api/stacks', {method:'PUT', body:JSON.stringify(stacks)}) }
+
+setInterval(async () => {
+  if(!online || !file) return;
+  const r = await api('/api/doc?file='+encodeURIComponent(file)).catch(()=>null);
+  if(r?.ok && (r.data.rev||0) > (doc.rev||0)){
+    const before = doc.notes.reduce((a,n)=>a+(n.replies?.length||0),0);
+    doc = r.data; doc.notes ||= [];
+    doc.notes.forEach(n => { if(n.replies?.some(x=>x.author===AGENT)) openReplies.add(n.id) });
+    render();
+    if(doc.notes.reduce((a,n)=>a+(n.replies?.length||0),0) > before) toast('New replies from '+AGENT);
+  }
+  const s = await api('/api/stacks').catch(()=>null);
+  if(s?.ok && JSON.stringify(s.data.stacks) !== JSON.stringify(stacks.stacks)){
+    const old = stacks.stacks[stackKey]?.length || 0;
+    stacks.stacks = s.data.stacks; renderVersions();
+    const list = stacks.stacks[stackKey] || [];
+    if(list.length > old) pendingVersion = list[list.length-1];
+  }
+  // Claude's new version: open it and play from the start (waits if you're mid-comment)
+  if(pendingVersion && pendingVersion !== file && !txt.value.trim() && !shapes.length && !attach && !drawMode){
+    const f = pendingVersion; pendingVersion = null;
+    await openFile(f);
+    playNewVersion(f);
+  }
+  renderStatus();
+}, 3000);
+
+let pendingVersion = null;
+async function playNewVersion(f){
+  const n = verNo(f);
+  const go = () => { v.currentTime = 0; return v.play() };
+  if(v.readyState < 2) await new Promise(r => v.addEventListener('loadeddata', r, {once:true}));
+  try { await go(); toast(`v${n} is ready, playing now`) }
+  catch(e){ // browser blocked autoplay with sound: play muted instead
+    v.muted = true; setIcon($('muteBtn'),'mute');
+    try { await go(); toast(`v${n} is playing muted. Press M for sound`) } catch(e2){ toast(`v${n} is ready. Press Space to play`) }
+  }
+}
+
+// ---------------- time ----------------
+const frameOf = t => Math.floor(t*fps + 1e-4);
+const totalFrames = () => v.duration ? Math.max(0, Math.round(v.duration*fps) - 1) : 0;
+const curFrame = () => frameOf(v.currentTime);
+function smpte(f){ const r=Math.round(fps), p=n=>String(n).padStart(2,'0'), s=Math.floor(f/r); return `${p(Math.floor(s/3600))}:${p(Math.floor(s/60)%60)}:${p(s%60)}:${p(f%r)}` }
+function fmt(f){ return tcMode===0 ? smpte(f) : tcMode===1 ? 'f '+f : (f/fps).toFixed(2)+'s' }
+function seekFrame(f){ f = Math.max(0, Math.min(totalFrames(), f)); v.currentTime = (f+0.5)/fps }
+$('tcMenu').onclick = e => menu(e.currentTarget, [
+  {head:'Time format'},
+  ...['Timecode','Frames','Seconds'].map((l,i)=>({label:l, on:tcMode===i, click:()=>{ tcMode=i; lastFrame=-1; render(); renderRange() }}))
+], 'center');
+// Typed timestamps: "00:00:12:05", "1:20", "1:20.5", "12", "12.5s", "f300" or "300f"
+function parseTime(str){
+  const s = String(str).trim().toLowerCase().replace(/\s+/g,'');
+  if(!s) return null;
+  if(/^f\d+$/.test(s) || /^\d+f$/.test(s)) return parseInt(s.replace('f',''), 10);
+  if(/^\d+(\.\d+)?s?$/.test(s)) return Math.round(parseFloat(s) * fps);
+  const p = s.split(':');
+  if(p.length < 2 || p.length > 4 || p.some(x => !/^\d+(\.\d+)?$/.test(x))) return null;
+  const n = p.map(Number);
+  if(p.length === 4) return (n[0]*3600 + n[1]*60 + n[2]) * Math.round(fps) + n[3];   // HH:MM:SS:FF
+  if(p.length === 3) return Math.round((n[0]*3600 + n[1]*60 + n[2]) * fps);           // HH:MM:SS
+  return Math.round((n[0]*60 + n[1]) * fps);                                          // MM:SS
+}
+// Turn a timecode label into a small text box. Enter applies, Esc cancels.
+function editTime(el, frame, onSet){
+  if(!el || el.querySelector('input.tedit') || !v.duration) return;
+  stopShuttle(); v.pause();
+  const old = el.innerHTML, w = el.getBoundingClientRect().width;
+  const i = document.createElement('input'); i.className = 'tedit'; i.value = smpte(frame);
+  i.style.width = Math.max(96, w) + 'px'; i.spellcheck = false;
+  i.title = 'Type a time: 00:00:12:05, 1:20, 12.5s or f300. Enter to go, Esc to cancel';
+  el.innerHTML = ''; el.appendChild(i); i.focus(); i.select();
+  let done = false;
+  const finish = ok => {
+    if(done) return; done = true;
+    const f = ok ? parseTime(i.value) : null;
+    el.innerHTML = old;
+    if(ok && f == null && i.value.trim() !== smpte(frame)) toast('Try 00:00:12:05, 1:20, 12.5s or f300', {kind:'warn'});
+    if(f != null) onSet(Math.max(0, Math.min(totalFrames(), f)));
+  };
+  i.addEventListener('keydown', e => { e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); finish(true) } if(e.key === 'Escape'){ e.preventDefault(); finish(false) } });
+  i.addEventListener('blur', () => finish(true));
+  ['click','pointerdown','mousedown'].forEach(t => i.addEventListener(t, e => e.stopPropagation()));
+}
+function goToTime(){ editTime($('tc'), curFrame(), f => { seekFrame(f); toast('Jumped to ' + smpte(f)) }) }
+$('tc').onclick = goToTime;
+$('tc').title = 'Click to type a time and jump there (G)';
+
+// ---------------- loading / versions ----------------
+function stackOf(f){ return Object.keys(stacks.stacks).find(k => stacks.stacks[k].includes(f)) }
+async function openFile(name, src){
+  stopShuttle(); v.pause();
+  file = name; v.src = src || encodeURI(name);
+  if(!stackOf(name)){ stacks.stacks[name.replace(/\.[^.]+$/,'')] = [name] }
+  stackKey = stackOf(name); stacks.last = name; saveStacks();
+  $('drop').classList.add('hidden');
+  document.title = name + ' · Frameback';
+  activeId = null; inF = outF = null; useRange = false; shapes = []; attach = null; setDraw(false); renderAttach();
+  await loadDoc(); renderVersions(); render(); renderRange();
+  thumbV.src = v.src;
+  if(cmp !== 'off') setCompare(cmp);
+}
+const versions = () => stacks.stacks[stackKey] || [];
+const verNo = f => versions().indexOf(f) + 1;
+function renderVersions(){
+  $('stackName').textContent = stackKey || 'No video';
+  const n = verNo(file), all = versions().length;
+  $('fileName').textContent = file ? `${file}${all>1 ? '  ·  v'+n : ''}` : '—';
+  $('labA').textContent = 'v'+n; $('labB').textContent = 'v'+verNo(cmpFile);
+}
+$('fileBtn').onclick = e => {
+  if(!file) return;
+  const list = versions();
+  menu(e.currentTarget, [
+    {head:'Versions'},
+    ...list.map((f,i)=>({label:`v${i+1}${i===list.length-1?'  (latest)':''}  ·  ${f}`, on:f===file, click:()=>openFile(f)})).reverse(),
+    '-',
+    {label:'+ Add a version…', click:()=>pickFile(e.target, f => addVersion(f))},
+  ]);
+};
+function addVersion(f){
+  for(const k in stacks.stacks) stacks.stacks[k] = stacks.stacks[k].filter(x => x!==f);
+  for(const k in stacks.stacks) if(!stacks.stacks[k].length) delete stacks.stacks[k];
+  (stacks.stacks[stackKey] ||= []).push(f); saveStacks(); openFile(f); toast('Added as v'+stacks.stacks[stackKey].length);
+}
+async function pickFile(anchor, onPick){
+  if(!online){ $('fileInput').click(); return }
+  const r = await api('/api/files');
+  menu($('fileBtn'), [
+    {label:'Browse your computer…', click:()=>$('fileInput').click()},
+    '-', {head:'Videos in this folder'},
+    ...r.data.map(f => ({label:f, on:f===file, click:()=>onPick(f)})),
+  ]);
+}
+$('openBtn').onclick = e => pickFile(e.currentTarget, f => openFile(f));
+
+// "Choose video": the computer's own file picker. The picked video is copied into the review folder
+// (skipped if the same file is already there), so the player can show it and the AI can edit it.
+let uploading = false;
+async function useLocalFile(f){
+  if(!f) return;
+  if(!/\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name) && !f.type.startsWith('video')) return toast('That is not a video file', {kind:'warn'});
+  if(!online) return openFile(f.name, URL.createObjectURL(f));
+  if(uploading) return toast('Still copying the last video', {kind:'warn'});
+  uploading = true; $('chooseBtn').disabled = true;
+  toast('Copying video… 0%');
+  const tm = tEl().querySelector('.tmsg');
+  try{
+    const res = await new Promise((ok, bad) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', '/api/upload?name=' + encodeURIComponent(f.name));
+      x.upload.onprogress = e => { if(e.lengthComputable){ tm.textContent = `Copying video… ${Math.round(e.loaded / e.total * 100)}%`; tFit(); tArm(4000) } };
+      x.onload = () => x.status === 200 ? ok(JSON.parse(x.responseText)) : bad(new Error((JSON.parse(x.responseText || '{}').error) || 'copy failed'));
+      x.onerror = () => bad(new Error('copy failed'));
+      x.send(f);
+    });
+    await openFile(res.file);
+    toast(res.reused ? `Opened ${res.file}` : `Added ${res.file}`);
+  } catch(err){ toast('Could not add the video: ' + err.message, {kind:'warn'}) }
+  finally { uploading = false; $('chooseBtn').disabled = false }
+}
+$('chooseBtn').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => { const f = e.target.files[0]; e.target.value = ''; useLocalFile(f) };
+stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('dragover') });
+stage.addEventListener('dragleave', () => stage.classList.remove('dragover'));
+stage.addEventListener('drop', e => { e.preventDefault(); stage.classList.remove('dragover');
+  useLocalFile([...e.dataTransfer.files].find(f => f.type.startsWith('video') || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name))) });
+function downloadVideo(){ if(!file) return; const a=$('dlLink'); a.href = encodeURI(file); a.download = file; a.click() }
+function toggleSide(show){ const s=$('side'); s.classList.toggle('hidden', show===undefined ? undefined : !show); $('panelBtn').classList.toggle('on', !s.classList.contains('hidden')); setTimeout(layout, 30) }
+$('panelBtn').onclick = () => toggleSide();
+$('side').addEventListener('transitionend', e => { if(e.target === $('side')) layout() });
+document.addEventListener('visibilitychange', () => { if(!document.hidden) setTimeout(layout, 50) });
+window.addEventListener('resize', () => { closeMenus(); layout() });
+$('closeSide').onclick = () => toggleSide(false);
+$('topSearch').onclick = () => { toggleSide(true); if(!$('searchRow').classList.contains('show')) $('searchBtn').click(); else $('search').focus() };
+
+// theme
+const theme = () => document.documentElement.dataset.theme;
+function applyTheme(t){ document.documentElement.dataset.theme = t; lsSet('review:theme2', t); setIcon($('themeBtn'), t==='dark' ? 'sun' : 'moon'); drawSafe() }
+// circle reveal growing out of the button that was clicked
+function setTheme(t, from){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!document.startViewTransition || reduce || document.hidden) return applyTheme(t);
+  const b = (from || $('themeBtn')).getBoundingClientRect();
+  const x = b.left + b.width/2, y = b.top + b.height/2;
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  closeMenus();
+  const tr = document.startViewTransition(() => applyTheme(t));
+  tr.ready.then(() => document.documentElement.animate(
+    {clipPath:[`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`]},
+    {duration:600, easing:'cubic-bezier(.65,0,.35,1)', pseudoElement:'::view-transition-new(root)'}
+  )).catch(()=>{});
+}
+const toggleTheme = from => setTheme(theme()==='dark' ? 'light' : 'dark', from);
+$('themeBtn').onclick = e => toggleTheme(e.currentTarget);
+setIcon($('themeBtn'), theme()==='dark' ? 'sun' : 'moon');
+$('kebabBtn').onclick = e => menu(e.currentTarget, [
+  {label: theme()==='dark' ? 'Light mode' : 'Dark mode', click:()=>toggleTheme($('kebabBtn'))},
+  {label:'Download video', click:downloadVideo},
+  {label:'Choose video from computer', click:()=>$('fileInput').click()},
+  {label:'Open another video', click:()=>$('openBtn').click()},
+  '-',
+  {label:'Export comments (CSV)', click:exportCsv}, {label:'Print comments with stills', click:printNotes},
+  {label:'Change my name', click:()=>$('meAv').click()}, {label:'Keyboard shortcuts', click:()=>$('keys').classList.add('show')},
+], 'right');
+
+// review status per version
+const STATUS = {progress:['In progress','#3b8fe0'], review:['Needs review','#e8c547'], approved:['Approved','#5cb85c']};
+function renderReviewStatus(){
+  const s = STATUS[doc.status];
+  $('statusLbl').textContent = s ? s[0] : 'Set status';
+  $('statusDot').style.background = s ? s[1] : 'transparent';
+  $('statusDot').style.boxShadow = s ? 'none' : 'inset 0 0 0 1.5px var(--dim)';
+}
+$('statusBtn').onclick = e => {
+  if(!file) return;
+  const m = menu(e.currentTarget, [
+    ...Object.entries(STATUS).map(([k,[l]]) => ({label:l, on:doc.status===k, dot:STATUS[k][1], click:()=>{ doc.status=k; save(); renderReviewStatus() }})),
+    '-', {label:'Clear status', click:()=>{ delete doc.status; save(); renderReviewStatus() }},
+  ]);
+  m.style.minWidth = Math.max(260, e.currentTarget.offsetWidth) + 'px';
+};
+
+// ---------------- playback ----------------
+function togglePlay(){ stopShuttle(); v.paused ? v.play() : v.pause() }
+$('playBtn').onclick = togglePlay;
+v.onplay = () => { setIcon($('playBtn'),'pause'); if(cmp!=='off'){ vB.currentTime=v.currentTime; vB.play().catch(()=>{}) } };
+v.onpause = () => { setIcon($('playBtn'),'play'); if(cmp!=='off'){ vB.pause(); vB.currentTime=v.currentTime } tick(true) };
+v.onseeked = () => { if(cmp!=='off') vB.currentTime = v.currentTime; tick(true) };
+v.onloadedmetadata = () => { layout(); render(); renderInfo() };
+v.onratechange = () => { if(cmp!=='off') vB.playbackRate = v.playbackRate };
+v.onended = () => { if(loopOn && !(inF!=null && outF!=null)){ v.currentTime = 0; v.play() } };
+$('speedBtn').onclick = e => menu(e.currentTarget, [{head:'Speed'}, ...SPEEDS.map(s=>({label:s.toFixed(s<1?2:1)+'x', on:s===speed, click:()=>{ speed=s; v.playbackRate=s; $('speedBtn').textContent=s.toFixed(s<1?2:1)+'x' }}))]);
+$('vol').oninput = e => { v.volume = +e.target.value; v.muted = v.volume===0; setIcon($('muteBtn'), v.muted?'mute':'vol') };
+$('muteBtn').onclick = () => { v.muted = !v.muted; setIcon($('muteBtn'), v.muted?'mute':'vol') };
+$('loopBtn').onclick = () => { loopOn=!loopOn; $('loopBtn').classList.toggle('on',loopOn); toast(loopOn ? (inF!=null&&outF!=null&&outF>inF ? 'Looping the range' : 'Looping') : 'Loop off') };
+$('fsBtn').onclick = () => document.fullscreenElement ? document.exitFullscreen() : $('left').requestFullscreen();
+v.addEventListener('click', () => { if(!drawMode) togglePlay() });
+
+function showShuttle(t){ const s=$('shuttle'); s.textContent=t; s.style.display=t?'block':'none' }
+function stopShuttle(){ revRate = 0; v.playbackRate = speed; showShuttle('') }
+function shuttleL(){
+  if(revRate){ stopShuttle(); v.play(); return }
+  if(v.paused){ v.playbackRate = 1; v.play(); showShuttle('') }
+  else { v.playbackRate = Math.min(v.playbackRate*2, 8); showShuttle('▶▶ '+v.playbackRate+'x') }
+}
+function shuttleJ(){ v.pause(); revRate = revRate ? Math.min(revRate*2, 8) : 1; showShuttle('◀◀ '+revRate+'x') }
+
+let lastT = performance.now();
+function tick(force){
+  const f = curFrame();
+  if(loopOn && !v.paused && inF!=null && outF!=null && outF>inF && (f>=outF || f<inF)) seekFrame(inF);
+  if(cmp!=='off' && !v.paused && Math.abs(vB.currentTime - v.currentTime) > 0.08) vB.currentTime = v.currentTime;
+  if(f !== lastFrame || force){
+    lastFrame = f;
+    $('tc').textContent = fmt(f);
+    if(!$('txt').value && !shapes.length && !useRange) $('tcChip').textContent = chipLabel();
+    const d = v.duration || 1;
+    $('played').style.width = $('head').style.left = (v.currentTime/d*100)+'%';
+    if(v.buffered.length) $('buffered').style.width = (v.buffered.end(v.buffered.length-1)/d*100)+'%';
+    drawInk();
+  }
+}
+(function loop(now){
+  const dt = (now - lastT)/1000; lastT = now;
+  if(revRate && !v.seeking){ if(v.currentTime <= 0) stopShuttle(); else v.currentTime = Math.max(0, v.currentTime - dt*revRate) }
+  tick(false); requestAnimationFrame(loop);
+})(performance.now());
+
+// ---------------- timeline ----------------
+const bar = $('bar'), thumbV = document.createElement('video'); thumbV.muted = true; thumbV.preload = 'auto'; thumbV.crossOrigin='anonymous';
+const tctx = $('thumb').getContext('2d'); let thumbWant = null;
+thumbV.onseeked = () => { tctx.drawImage(thumbV,0,0,90,160); if(thumbWant!=null && Math.abs(thumbV.currentTime-thumbWant)>0.05) thumbV.currentTime = thumbWant };
+function barFrame(e){ const r=bar.getBoundingClientRect(); return Math.round(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*totalFrames()) }
+let scrub = null;
+// Range editing on the timeline:
+//  - drag the left / right handle to move the in / out point
+//  - drag the middle of the range to slide the whole range
+//  - with the range on, drag anywhere else on the timeline to draw a new range (a plain click still just seeks)
+//  - Shift+drag always draws a new range
+bar.addEventListener('pointerdown', e => {
+  if(e.target.classList.contains('mark') || !v.duration) return;
+  stopShuttle(); v.pause(); bar.setPointerCapture(e.pointerId);
+  const f = barFrame(e), onRange = e.target.closest('#range');
+  if(onRange && useRange){
+    const mode = e.target.classList.contains('l') ? 'in' : e.target.classList.contains('r') ? 'out' : 'move';
+    scrub = {mode, f0:f, in0:inF, out0:outF};
+    $('range').classList.add('dragging');
+    if(mode !== 'move') return seekFrame(mode === 'in' ? inF : outF);
+    return;
+  }
+  if(e.shiftKey || useRange){ scrub = {mode:'new', from:f, moved:false, in0:inF, out0:outF, had:useRange} }
+  else scrub = {mode:'seek'};
+  seekFrame(f);
+});
+bar.addEventListener('pointermove', e => {
+  const r = bar.getBoundingClientRect(), h = $('hover'), f = barFrame(e);
+  if(!e.target.classList.contains('mark')){
+    h.style.display='block'; h.style.left=(e.clientX-r.left)+'px'; $('thumb').style.display='block';
+    $('hoverT').innerHTML = fmt(f);
+    thumbWant = (f+0.5)/fps; if(!thumbV.seeking && thumbV.readyState) thumbV.currentTime = thumbWant;
+  }
+  if(!scrub) return;
+  const tf = totalFrames();
+  if(scrub.mode === 'seek') seekFrame(f);
+  else if(scrub.mode === 'new'){
+    if(f !== scrub.from) scrub.moved = true;
+    if(scrub.moved){ useRange = true; inF = Math.min(scrub.from,f); outF = Math.max(scrub.from,f); renderRange() }
+    seekFrame(f);
+  }
+  else if(scrub.mode === 'in'){ inF = Math.max(0, Math.min(f, outF-1)); renderRange(); seekFrame(inF) }
+  else if(scrub.mode === 'out'){ outF = Math.min(tf, Math.max(f, inF+1)); renderRange(); seekFrame(outF) }
+  else if(scrub.mode === 'move'){
+    const len = scrub.out0 - scrub.in0;
+    inF = Math.max(0, Math.min(tf-len, scrub.in0 + f - scrub.f0)); outF = inF + len; renderRange(); seekFrame(inF);
+  }
+});
+bar.addEventListener('pointerup', () => {
+  if(scrub?.mode === 'new' && !scrub.moved && scrub.had){ inF = scrub.in0; outF = scrub.out0; renderRange() } // a click just seeks
+  if(scrub?.mode === 'new' && scrub.moved && inF === outF) outF = Math.min(totalFrames(), inF+1);
+  scrub = null; $('range').classList.remove('dragging');
+});
+bar.addEventListener('pointerleave', () => { $('hover').style.display='none'; thumbWant=null });
+
+// ---------------- range ----------------
+function chipLabel(){ return (useRange && inF!=null && outF!=null && inF!==outF) ? fmt(inF)+' → '+fmt(outF) : (useTc ? fmt(curFrame()) : 'General') }
+function setIn(){ inF=curFrame(); if(outF==null||outF<inF) outF=inF; useRange=true; renderRange(); toast('In '+fmt(inF)) }
+function setOut(){ outF=curFrame(); if(inF==null||inF>outF) inF=outF; useRange=true; renderRange(); toast('Out '+fmt(outF)) }
+function renderRange(){
+  const el=$('range'), tf=totalFrames()||1;
+  $('rangeBtn').classList.toggle('on', useRange);
+  el.classList.toggle('edit', useRange);
+  if(inF!=null && outF!=null && (useRange||loopOn)){
+    el.style.display='block'; el.style.left=(inF/tf*100)+'%'; el.style.width=Math.max(.4,(outF-inF)/tf*100)+'%';
+    el.querySelector('.rlab').textContent = ((outF-inF+1)/fps).toFixed(1)+'s';
+  }
+  else el.style.display='none';
+  const chip = $('tcChip');
+  chip.innerHTML = (useRange && inF!=null && outF!=null)
+    ? `<span class="rt" data-e="in" title="Click to type the start">${esc(fmt(inF))}</span> → <span class="rt" data-e="out" title="Click to type the end">${esc(fmt(outF))}</span> <span class="rx" title="Clear range (Esc)">✕</span>`
+    : esc(chipLabel());
+  chip.classList.toggle('off', !useTc && !useRange);
+  chip.title = useRange ? 'Range for this comment. ✕ clears it' : 'Pinned to this frame. Click for a general comment';
+}
+function clearRange(){ useRange=false; inF=outF=null; renderRange() }
+$('rangeBtn').onclick = () => {
+  if(useRange) return clearRange();
+  useRange = true;
+  if(inF==null || inF===outF){ const len = Math.max(Math.round(fps*2), Math.round(totalFrames()*0.06)); inF=Math.max(0, Math.min(curFrame(), totalFrames()-len)); outF=Math.min(totalFrames(), inF+len) }
+  renderRange(); toast('Drag the range ends on the timeline');
+};
+$('tcChip').onclick = e => {
+  const rt = e.target.closest('.rt');
+  if(rt && useRange){
+    const isIn = rt.dataset.e === 'in';
+    return editTime(rt, isIn ? inF : outF, f => {
+      if(isIn){ inF = f; if(outF <= inF) outF = Math.min(totalFrames(), inF + 1) }
+      else { outF = f; if(outF <= inF) inF = Math.max(0, outF - 1) }
+      renderRange(); seekFrame(f);
+    });
+  }
+  if(e.target.closest('.tedit')) return;
+  if(useRange){ if(e.target.closest('.rx')) clearRange(); return }
+  useTc = !useTc; renderRange();
+};
+
+// ---------------- layout / overlays ----------------
+let cmpFile = null;
+function layout(){
+  const vr = v.getBoundingClientRect(), sr = stage.getBoundingClientRect(), dpr = devicePixelRatio||1;
+  for(const c of [ink, safeC]){
+    Object.assign(c.style, {left:(vr.left-sr.left)+'px', top:(vr.top-sr.top)+'px', width:vr.width+'px', height:vr.height+'px'});
+    c.width = Math.round(vr.width*dpr); c.height = Math.round(vr.height*dpr);
+  }
+  if(cmp==='wipe'){
+    Object.assign(vB.style, {left:(vr.left-sr.left)+'px', top:(vr.top-sr.top)+'px', width:vr.width+'px', height:vr.height+'px'});
+    vB.style.clipPath = `inset(0 0 0 ${wipe*100}%)`;
+    Object.assign($('wipeLine').style, {left:(vr.left-sr.left + vr.width*wipe)+'px', top:(vr.top-sr.top)+'px', height:vr.height+'px'});
+    $('labA').style.left = (vr.left-sr.left+8)+'px'; $('labB').style.left = (vr.right-sr.left-50)+'px';
+  } else {
+    vB.style.cssText = '';
+    const br = vB.getBoundingClientRect();
+    $('labA').style.left = (vr.left-sr.left+8)+'px'; $('labB').style.left = (br.left-sr.left+8)+'px';
+  }
+  drawSafe(); drawInk();
+}
+new ResizeObserver(layout).observe(stage);
+document.addEventListener('fullscreenchange', () => setTimeout(layout, 50));
+function drawSafe(){
+  const c = safeC.getContext('2d'), w = safeC.width, h = safeC.height;
+  c.clearRect(0,0,w,h); if(!showSafe) return;
+  c.fillStyle = 'rgba(255,60,90,.22)';
+  c.fillRect(0,0,w,h*0.12); c.fillRect(0,h*0.78,w,h*0.22); c.fillRect(w*0.86,h*0.40,w*0.14,h*0.38);
+  c.setLineDash([8,6]); c.strokeStyle='rgba(255,255,255,.7)'; c.lineWidth=Math.max(1.5,w/400);
+  c.strokeRect(w*0.05,h*0.05,w*0.9,h*0.9);
+  c.setLineDash([]); c.fillStyle='rgba(255,255,255,.85)'; c.font=`${Math.max(11,w/34)}px system-ui`;
+  c.fillText('App UI (TikTok / Reels / Shorts)', w*0.04, h*0.12-8);
+}
+$('safeBtn').onclick = () => { showSafe=!showSafe; $('safeBtn').classList.toggle('on',showSafe); drawSafe() };
+
+function setCompare(mode, other){
+  if(mode!=='off'){
+    const others = versions().filter(f=>f!==file);
+    if(!others.length){ toast('Add another version to compare'); mode='off' }
+    else { cmpFile = other || (others.includes(cmpFile) ? cmpFile : others[others.length-1]);
+      if(decodeURI(vB.src).split('/').pop() !== cmpFile) vB.src = encodeURI(cmpFile);
+      vB.currentTime = v.currentTime; vB.playbackRate = v.playbackRate }
+  }
+  cmp = mode; stage.classList.toggle('side', mode==='side'); stage.classList.toggle('wipe', mode==='wipe');
+  if(mode==='off'){ vB.pause(); vB.removeAttribute('src'); vB.load() }
+  renderVersions(); setTimeout(layout, 30);
+}
+vB.onloadedmetadata = () => { vB.currentTime = v.currentTime; layout() };
+$('wipeLine').addEventListener('pointerdown', e => {
+  const el = e.target; el.setPointerCapture(e.pointerId);
+  const mv = ev => { const r = v.getBoundingClientRect(); wipe = Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width)); layout() };
+  el.addEventListener('pointermove', mv);
+  el.addEventListener('pointerup', () => el.removeEventListener('pointermove', mv), {once:true});
+});
+$('gearBtn').onclick = e => {
+  const others = versions().filter(f=>f!==file);
+  menu(e.currentTarget, [
+    {head:'Compare'},
+    {label:'Off', on:cmp==='off', click:()=>setCompare('off')},
+    {label:'Side by side', on:cmp==='side', click:()=>setCompare('side')},
+    {label:'Wipe', on:cmp==='wipe', click:()=>setCompare('wipe')},
+    ...(others.length ? [{head:'Compare with'}, ...others.map(f=>({label:'v'+verNo(f), on:f===cmpFile && cmp!=='off', click:()=>setCompare(cmp==='off'?'wipe':cmp, f)}))] : []),
+    '-',
+    {html:`<div class="it" style="cursor:default"><span class="ck"></span>FPS <input type="number" id="fps" value="${fps}" min="1" max="120" step="0.001"></div>`,
+      bind:d=>{ const i=d.querySelector('input'); i.onkeydown=ev=>ev.stopPropagation(); i.onchange=()=>{ fps=Math.max(1,+i.value||30); save(); render(); renderInfo() } }},
+    {label:'Keyboard shortcuts', click:()=>$('keys').classList.add('show')},
+  ], 'right');
+};
+
+// ---------------- drawing ----------------
+$('swatches').innerHTML = COLORS.map((c,i)=>`<span class="sw${i?'':' on'}" data-c="${c}" style="background:${c}"></span>`).join('');
+$('swatches').onclick = e => { const c=e.target.dataset.c; if(!c) return; color=c; document.querySelectorAll('.sw').forEach(s=>s.classList.toggle('on', s.dataset.c===c)) };
+function pickTool(t){ if(drawMode && tool===t) return setDraw(false); tool = t; setDraw(true) }
+document.querySelectorAll('#toolSeg button').forEach(b => b.onclick = () => { tool = b.dataset.t; setDraw(true) });
+$('drawBtn').onclick = () => setDraw(!drawMode);
+$('undoInk').onclick = () => { shapes.pop(); drawInk() };
+$('clearShapes').onclick = () => { shapes = []; drawInk() };
+function setDraw(on){
+  drawMode = on; if(on){ stopShuttle(); v.pause() }
+  ink.classList.toggle('drawing', on); $('drawBar').classList.toggle('show', on); $('drawBtn').classList.toggle('on', on);
+  document.querySelectorAll('#toolSeg button').forEach(x => x.classList.toggle('on', x.dataset.t===tool));
+  drawInk();
+}
+const pt = e => { const r=ink.getBoundingClientRect(); return [(e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height] };
+ink.addEventListener('pointerdown', e => { if(!drawMode) return; ink.setPointerCapture(e.pointerId); const p=pt(e);
+  cur = tool==='pen' ? {t:'pen', c:color, p:[p]} : {t:tool, c:color, a:p, b:p}; shapes.push(cur) });
+ink.addEventListener('pointermove', e => { if(!cur) return; const p=pt(e); cur.t==='pen' ? cur.p.push(p) : cur.b=p; drawInk() });
+ink.addEventListener('pointerup', () => cur = null);
+function paint(list, dim){
+  const w=ink.width, h=ink.height, lw=Math.max(3,w/150);
+  ictx.lineWidth=lw; ictx.lineCap=ictx.lineJoin='round'; ictx.globalAlpha = dim ? .55 : 1;
+  for(const s of list){
+    ictx.strokeStyle = s.c || COLORS[0]; ictx.beginPath();
+    if(s.t==='pen' || !s.t){ (s.p||s).forEach(([x,y],i)=> i?ictx.lineTo(x*w,y*h):ictx.moveTo(x*w,y*h)) }
+    else {
+      const [x1,y1]=[s.a[0]*w,s.a[1]*h], [x2,y2]=[s.b[0]*w,s.b[1]*h];
+      if(s.t==='rect') ictx.rect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));
+      if(s.t==='ellipse') ictx.ellipse((x1+x2)/2,(y1+y2)/2,Math.abs(x2-x1)/2,Math.abs(y2-y1)/2,0,0,Math.PI*2);
+      if(s.t==='arrow'){ const a=Math.atan2(y2-y1,x2-x1), L=lw*4; ictx.moveTo(x1,y1); ictx.lineTo(x2,y2);
+        ictx.moveTo(x2,y2); ictx.lineTo(x2-L*Math.cos(a-.45),y2-L*Math.sin(a-.45)); ictx.moveTo(x2,y2); ictx.lineTo(x2-L*Math.cos(a+.45),y2-L*Math.sin(a+.45)) }
+    }
+    ictx.stroke();
+  }
+  ictx.globalAlpha = 1;
+}
+function drawInk(){
+  ictx.clearRect(0,0,ink.width,ink.height);
+  if(v.paused && !drawMode){ const f=curFrame(); for(const n of doc.notes) if(n.ink && n.frame===f) paint(n.ink, n.id!==activeId) }
+  if(shapes.length) paint(shapes);
+}
+
+// ---------------- composer ----------------
+const txt = $('txt');
+function autosize(){ txt.style.height='auto'; txt.style.height=Math.min(140, txt.scrollHeight)+'px' }
+txt.addEventListener('input', () => { autosize(); if(!v.paused || revRate){ stopShuttle(); v.pause() } });
+txt.addEventListener('focus', () => { stopShuttle(); v.pause(); if(!useRange) $('tcChip').textContent = chipLabel() });
+txt.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); post() } if(e.key==='Escape') txt.blur() });
+$('postBtn').onclick = post;
+const EMOJI = '👍 👎 ❤️ 🔥 😂 😍 🤔 😬 👀 ✅ ❌ ⚠️ ⭐ 🎬 🎵 🔊 ✂️ ⏩ ⏪ 💡 🎨 📝 🙌 💯'.split(' ');
+$('emoBtn').onclick = e => menu(e.currentTarget, [{html:`<div class="emo">${EMOJI.map(x=>`<span>${x}</span>`).join('')}</div>`,
+  bind:d=>d.onclick=ev=>{ if(ev.target.tagName!=='SPAN') return; const s=txt.selectionStart??txt.value.length; txt.value=txt.value.slice(0,s)+ev.target.textContent+txt.value.slice(s); closeMenus(); txt.focus(); autosize() }}]);
+$('attBtn').onclick = () => $('attFile').click();
+$('attFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value=''; if(!f) return;
+  const img = await createImageBitmap(f), k = Math.min(1, 900/Math.max(img.width,img.height));
+  const c = document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height); attach = c.toDataURL('image/jpeg',.85); renderAttach(); txt.focus();
+};
+function renderAttach(){ $('attPrev').style.display = attach ? 'block' : 'none'; if(attach) $('attImg').src = attach }
+$('attX').onclick = () => { attach = null; renderAttach() };
+async function needName(){
+  if(me) return true;
+  const n = (await ask('Your name (shown on your comments)', 'Me'))?.trim(); if(!n) return false;
+  setMe(n); return true;
+}
+$('meAv').onclick = async () => { const n = (await ask('Your name', me))?.trim(); if(n){ setMe(n); render() } };
+async function post(){
+  const t = txt.value.trim();
+  if(!t && !shapes.length && !attach) return txt.focus();
+  if(!file) return toast('Open a video first');
+  if(!(await needName())) return;
+  const f = curFrame();
+  const n = {id: Date.now().toString(36)+Math.random().toString(36).slice(2,5), author: me, text: t, frame: useTc ? f : null, created: new Date().toISOString(), done: false, replies: []};
+  if(useRange && inF!=null && outF!=null && outF>inF){ n.frame = inF; n.end = outF }
+  if(shapes.length){ n.ink = shapes; n.frame ??= f }
+  if(attach) n.image = attach;
+  doc.notes.push(n);
+  txt.value=''; autosize(); shapes=[]; attach=null; renderAttach(); useRange=false; inF=outF=null; setDraw(false);
+  activeId = n.id; save(); render(); renderRange();
+}
+
+// ---------------- list ----------------
+function sorted(){
+  return [...doc.notes].sort((a,b) => sortMode==='new' ? b.created.localeCompare(a.created) : sortMode==='old' ? a.created.localeCompare(b.created)
+    : ((a.frame??-1)-(b.frame??-1)) || a.created.localeCompare(b.created));
+}
+const byTc = () => [...doc.notes].sort((a,b)=>((a.frame??-1)-(b.frame??-1)) || a.created.localeCompare(b.created));
+const label = n => n.frame==null ? 'General' : n.end!=null ? fmt(n.frame)+' → '+fmt(n.end) : fmt(n.frame);
+function visible(n){
+  const q = $('search').value.toLowerCase();
+  if(filterMode==='open' && n.done) return false; if(filterMode==='done' && !n.done) return false;
+  if(filterMode==='mine' && n.author!==me) return false;
+  if(hideDone && n.done) return false;
+  if(q && !(n.text+' '+n.author+' '+(n.replies||[]).map(r=>r.text).join(' ')).toLowerCase().includes(q)) return false;
+  return true;
+}
+const FILTERS = {all:'All comments', open:'Unresolved', done:'Resolved', mine:'My comments'};
+$('filterBtn').onclick = e => menu(e.currentTarget, Object.entries(FILTERS).map(([k,l])=>({label:l, on:filterMode===k, click:()=>{ filterMode=k; $('filterLbl').textContent=l; render() }})));
+$('doneBtn').onclick = () => { hideDone=!hideDone; $('doneBtn').classList.toggle('on',hideDone); toast(hideDone?'Hiding resolved':'Showing resolved'); render() };
+$('sortBtn').onclick = e => menu(e.currentTarget, [...[['tc','Timecode'],['new','Newest'],['old','Oldest']].map(([k,l])=>({label:l, on:sortMode===k, click:()=>{ sortMode=k; $('sortLbl').textContent=l; render() }}))], 'right');
+$('searchBtn').onclick = () => { const r=$('searchRow'); r.classList.toggle('show'); $('searchBtn').classList.toggle('on', r.classList.contains('show')); if(r.classList.contains('show')) $('search').focus(); else { $('search').value=''; render() } };
+$('search').addEventListener('input', render);
+$('moreBtn').onclick = e => menu(e.currentTarget, [
+  {label:'Hide resolved', on:hideDone, click:()=>$('doneBtn').click()},
+  {label:'Time format: '+['Timecode','Frames','Seconds'][tcMode], click:()=>$('tc').click()},
+  '-',
+  {label:'Export CSV', click:exportCsv}, {label:'Print with stills', click:printNotes}, {label:'Export JSON', click:()=>download(base()+' comments.json', JSON.stringify(doc,null,2), 'application/json')},
+  '-', {label:'Change my name', click:()=>$('meAv').click()}, {label:'Keyboard shortcuts', click:()=>$('keys').classList.add('show')},
+], 'right');
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on', x===b));
+  const info = b.dataset.tab==='info'; $('cPane').style.display = info?'none':'flex'; $('info').style.display = info?'block':'none'; if(info) renderInfo();
+});
+function renderInfo(){
+  const open = doc.notes.filter(n=>!n.done).length, r = doc.round;
+  $('info').innerHTML = `<dl>
+    <dt>File</dt><dd>${esc(file||'—')}</dd><dt>Stack</dt><dd>${esc(stackKey||'—')}</dd>
+    <dt>Version</dt><dd>v${verNo(file)} of ${versions().length}</dd>
+    <dt>Resolution</dt><dd>${v.videoWidth?v.videoWidth+' × '+v.videoHeight:'—'}</dd>
+    <dt>Duration</dt><dd class="mono">${v.duration?smpte(totalFrames())+'  ('+v.duration.toFixed(2)+'s)':'—'}</dd>
+    <dt>Frame rate</dt><dd>${fps} fps · ${totalFrames()+1} frames</dd>
+    <dt>Comments</dt><dd>${doc.notes.length} (${open} open)</dd>
+    <dt>${esc(AGENT)}</dt><dd>${r ? esc(r.state) + (r.note?' · '+esc(r.note):'') : 'Not sent yet'}</dd></dl>`;
+}
+function jump(n){
+  activeId = n.id; stopShuttle(); v.pause();
+  if(n.frame!=null){ seekFrame(n.frame); if(n.end!=null){ inF=n.frame; outF=n.end } else { inF=outF=null } }
+  renderRange(); if(n.end!=null){ const tf=totalFrames()||1, el=$('range'); el.style.display='block'; el.style.left=(n.frame/tf*100)+'%'; el.style.width=Math.max(.4,(n.end-n.frame)/tf*100)+'%' }
+  render();
+  document.querySelector(`.c[data-id="${n.id}"]`)?.scrollIntoView({block:'nearest'});
+}
+function render(){
+  const list = $('list'), order = byTc(), shown = sorted().filter(visible);
+  list.innerHTML = shown.length ? '' : `<div id="empty"><svg viewBox="0 0 24 24" width="110" height="90" class="ico" style="width:110px;height:90px">${ICONS.bubble}</svg>
+    <div>${doc.notes.length ? 'Nothing matches' : 'No comments – yet'}</div>${doc.notes.length ? '' : '<button class="btn" id="getStarted">Get Started</button>'}</div>`;
+  if($('getStarted')) $('getStarted').onclick = () => { v.pause(); txt.focus() };
+  for(const n of shown){
+    const d = document.createElement('div');
+    d.className = 'c'+(n.id===activeId?' active':'')+(n.done?' done':'')+(seenIds && !seenIds.has(n.id)?' new':''); d.dataset.id = n.id;
+    const nr = (n.replies||[]).length, showR = openReplies.has(n.id);
+    const reps = showR ? (n.replies||[]).map(r => `<div class="reply${r.author===AGENT?' claude':''}">${avatar(r.author)}<div class="body"><div class="meta"><b>${esc(r.author)}</b><span>${ago(r.created)}</span></div><div class="txt">${esc(r.text)}</div></div></div>`).join('') : '';
+    d.innerHTML = `${avatar(n.author, 1)}<div class="body">
+      <div class="meta"><b>${esc(n.author)}</b><span>${ago(n.created)}</span><span class="spacer"></span>
+        <button class="cmore" data-a="more" title="More">${icon('more','sm')}</button>
+        <span class="chk${n.done?' on':''}" data-a="done" title="${n.done?'Unresolve':'Resolve'}">${icon('check')}</span></div>
+      <div class="txt"><span class="tcchip">${label(n)}</span>${n.ink?'<span class="dim">✎ </span>':''}${esc(n.text || '')}</div>
+      ${n.image ? `<img class="att" src="${n.image}">` : ''}
+      ${reps ? `<div class="replies">${reps}</div>` : ''}
+      <div class="acts">${nr && !showR ? '' : '<button class="pillbtn" data-a="reply">Reply</button>'}
+        ${nr ? `<button class="rtoggle" data-a="toggleR">${nr} repl${nr>1?'ies':'y'} ${icon(showR?'chevU':'chevD','sm')}</button>` : ''}</div>
+      ${replyOpen===n.id ? `<div class="rbox"><input type="text" placeholder="Reply…" data-r="1"><button class="btn" data-a="send">Reply</button></div>` : ''}
+    </div>`;
+    d.onclick = async e => {
+      const a = e.target.closest('[data-a]')?.dataset.a;
+      if(e.target.dataset.r) return;
+      if(a==='done'){ n.done=!n.done; save(); render(); toast(n.done?'Comment resolved':'Comment reopened', {undo:()=>{ n.done=!n.done; save(); render() }}); return }
+      if(a==='toggleR'){ showR ? openReplies.delete(n.id) : openReplies.add(n.id); render(); return }
+      if(a==='more'){ menu(e.target.closest('button'), [
+        {label:'Edit', click:async()=>{ const t=await ask('Edit comment', n.text, 'Save'); if(t!=null){ n.text=t.trim(); n.edited=new Date().toISOString(); save(); render() } }},
+        {label:'Delete', click:()=>{ const i = doc.notes.indexOf(n); doc.notes.splice(i,1); save(); render(); toast('Comment deleted', {undo:()=>{ doc.notes.splice(i,0,n); save(); render() }}) }},
+      ], 'right'); return }
+      if(a==='reply'){ replyOpen = replyOpen===n.id ? null : n.id; openReplies.add(n.id); render(); document.querySelector(`.c[data-id="${n.id}"] [data-r]`)?.focus(); return }
+      if(a==='send'){ sendReply(n, d); return }
+      jump(n);
+    };
+    const ri = d.querySelector('[data-r]');
+    if(ri) ri.addEventListener('keydown', e => { e.stopPropagation(); if(e.key==='Enter') sendReply(n, d); if(e.key==='Escape'){ replyOpen=null; render() } });
+    list.appendChild(d);
+  }
+  const m = $('marks'); m.innerHTML=''; const tf = totalFrames()||1;
+  for(const n of doc.notes){
+    if(n.frame==null || !visible(n)) continue;
+    const k = document.createElement('div');
+    k.className = 'mark'+(n.done?' done':'')+(n.id===activeId?' active':'');
+    k.style.left = (n.frame/tf*100)+'%'; k.style.background = avColor(n.author); k.textContent = initials(n.author)[0];
+    k.onclick = e => { e.stopPropagation(); jump(n) };
+    k.onmouseenter = () => { const h=$('hover'); h.style.display='block'; h.style.left=k.style.left; $('thumb').style.display='none';
+      $('hoverT').innerHTML = `<div class="card"><b>${esc(n.author)}</b> <span class="tcchip mono">${label(n)}</span><div>${esc(n.text||'(drawing)')}</div>${n.replies?.length?`<div class="dim">${n.replies.length} repl${n.replies.length>1?'ies':'y'}</div>`:''}</div>` };
+    k.onmouseleave = () => $('hover').style.display='none';
+    m.appendChild(k);
+  }
+  seenIds = new Set(doc.notes.map(n=>n.id));
+  $('nAll').textContent = doc.notes.length; renderReviewStatus();
+  renderStatus(); drawInk(); if($('info').style.display==='block') renderInfo();
+}
+async function sendReply(n, d){
+  const t = d.querySelector('[data-r]').value.trim(); if(!t || !(await needName())) return;
+  (n.replies ||= []).push({id:Date.now().toString(36), author:me, text:t, created:new Date().toISOString()});
+  replyOpen = null; save(); render();
+}
+function step(dir){
+  const timed = byTc().filter(n => n.frame!=null && visible(n)), f = curFrame();
+  const n = dir>0 ? timed.find(n=>n.frame>f) : [...timed].reverse().find(n=>n.frame<f);
+  if(n) jump(n);
+}
+
+// ---------------- send to Claude ----------------
+// Is an AI actually listening for Submit? `frameback.py listen` writes a heartbeat; the server reports it.
+var listening = null, listenAgent = null, submitting = false;  // var: renderStatus can run before this line
+async function checkListener(){
+  if(!online) return;
+  const r = await api('/api/listener').catch(()=>null);
+  if(r?.ok){ listening = r.data.listening; listenAgent = r.data.agent; renderStatus() }
+}
+setInterval(checkListener, 4000);
+// "Submitted" only shows for a moment after a click; the button is locked only during the Undo window
+// and while the AI is actually editing. Any other time you can submit (again).
+let justSubmitted = false;
+function renderStatus(){
+  const r = doc.round, st = $('roundTxt'), open = doc.notes.filter(n=>!n.done).length;
+  const state = r?.state, working = state==='working';
+  st.className = state || 'dim';
+  $('compose').classList.toggle('locked', working);
+  $('sendBtn').disabled = !online || working || !open || submitting || justSubmitted;
+  $('sendLbl').textContent = working ? 'Editing…' : (submitting || justSubmitted) ? 'Submitted' : 'Submit';
+  $('sendBtn').title = !open ? 'No open comments to submit'
+    : working ? `${AGENT} is editing these comments`
+    : `Submit ${open} open comment${open>1?'s':''} to ${AGENT}: it starts editing right away`;
+  // listening badge
+  const lb = $('listenDot');
+  lb.className = 'ldot ' + (listening ? 'on' : listening===false ? 'off' : '');
+  lb.title = listening ? `${listenAgent || AGENT} is listening for Submit` : `No AI is listening right now. Your Submit is saved: tell ${AGENT} "do the notes"`;
+  if(!online) st.textContent = 'Offline';
+  else if(state==='sent') st.textContent = listening ? `Sent · ${listenAgent || AGENT} will pick it up` : `Saved · no AI listening. Tell ${AGENT} "do the notes"`;
+  else if(state==='received') st.textContent = `${r.by || AGENT} received your notes`;
+  else if(working) st.textContent = `${AGENT} is editing…`;
+  else if(state==='done') st.textContent = r.note || 'New version ready';
+  else st.textContent = listening===false ? 'No AI listening' : '';
+}
+$('sendBtn').onclick = async () => {
+  if(submitting || $('sendBtn').disabled) return;
+  const open = doc.notes.filter(n=>!n.done).length; if(!open) return;
+  submitting = true; renderStatus();                         // lock at once: no double submits
+  const prev = doc.round, f = file;
+  doc.round = {state:'sent', at:new Date().toISOString(), file, open};
+  await save(); render();
+  await checkListener();
+  const who = listening ? (listenAgent || AGENT) : null;
+  // the request goes out when the toast closes, so Undo can still cancel it
+  toast(who ? `Submitted ${open} comment${open>1?'s':''} to ${who}` : `Saved. No AI is listening, tell ${AGENT} "do the notes"`, {
+    kind: who ? 'check' : 'warn',
+    undo: () => { if(prev) doc.round = prev; else delete doc.round; submitting = false; save(); render() },
+    commit: () => {
+      submitting = false; justSubmitted = true; renderStatus();
+      setTimeout(() => { justSubmitted = false; renderStatus() }, 3000);   // back to "Submit" after 3s
+      return fetch('/api/send?file='+encodeURIComponent(f), {method:'POST', keepalive:true});
+    },
+  });
+};
+checkListener();
+
+// ---------------- export ----------------
+function download(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click() }
+const base = () => (file||'notes').replace(/\.[^.]+$/,'');
+function exportCsv(){
+  const q = s => '"'+String(s??'').replace(/"/g,'""')+'"';
+  const rows = [['#','Timecode','Frame','End frame','Author','Comment','Done','Replies','Created']]
+    .concat(byTc().map((n,i)=>[i+1,label(n),n.frame??'',n.end??'',n.author,n.text,n.done?'yes':'',(n.replies||[]).map(r=>r.author+': '+r.text).join(' | '),n.created]));
+  download(base()+' comments.csv', '﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'), 'text/csv');
+}
+async function printNotes(){
+  const notes = byTc(); if(!notes.length) return toast('No comments');
+  toast('Grabbing stills…');
+  const pv = document.createElement('video'); pv.muted=true; pv.crossOrigin='anonymous'; pv.src=v.src;
+  await new Promise(r=>pv.onloadeddata=r);
+  const cv = document.createElement('canvas'), W=240, H=Math.round(240*pv.videoHeight/pv.videoWidth); cv.width=W; cv.height=H;
+  const cx = cv.getContext('2d'); let html='';
+  for(const [i,n] of notes.entries()){
+    let img='';
+    if(n.frame!=null){ pv.currentTime=(n.frame+0.5)/fps; await new Promise(r=>pv.onseeked=r); cx.drawImage(pv,0,0,W,H);
+      if(n.ink){ const sw=ink.width, sh=ink.height; ink.width=W; ink.height=H; ictx.clearRect(0,0,W,H); paint(n.ink); cx.drawImage(ink,0,0); ink.width=sw; ink.height=sh; drawInk() }
+      img = `<img src="${cv.toDataURL('image/jpeg',.85)}">` }
+    html += `<tr><td>${img}</td><td><b>#${i+1} · ${esc(label(n))}</b>${n.done?' ✓':''}<br><small>${esc(n.author)}</small><p>${esc(n.text)}</p>${(n.replies||[]).map(r=>`<p><small><b>${esc(r.author)}:</b> ${esc(r.text)}</small></p>`).join('')}</td></tr>`;
+  }
+  const w = window.open('');
+  if(!w) return toast('Pop-up blocked. Use your normal browser for printing.');
+  w.document.write(`<title>${esc(base())} comments</title><style>body{font:13px system-ui;margin:24px}td{vertical-align:top;padding:8px;border-bottom:1px solid #ddd}img{width:160px;border-radius:4px}</style><h2>${esc(file)}</h2><table>${html}</table>`);
+  w.document.close(); setTimeout(()=>w.print(), 400);
+}
+
+// ---------------- keys ----------------
+document.addEventListener('keydown', e => {
+  if(e.target.matches?.('textarea, input, select')) return;
+  const k = e.key;
+  if(k==='?'){ $('keys').classList.toggle('show'); return }
+  if(k==='Escape'){ $('keys').classList.remove('show'); closeMenus(); if(useRange) clearRange(); setDraw(false); shapes=[]; drawInk(); return }
+  if((e.ctrlKey||e.metaKey) && k.toLowerCase()==='z'){ e.preventDefault(); shapes.pop(); drawInk(); return }
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  switch(k.toLowerCase()){
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 'k': stopShuttle(); v.pause(); break;
+    case 'l': shuttleL(); break;
+    case 'j': shuttleJ(); break;
+    case 'arrowleft': e.preventDefault(); stopShuttle(); v.pause(); seekFrame(curFrame() - (e.shiftKey?Math.round(fps):1)); break;
+    case 'arrowright': e.preventDefault(); stopShuttle(); v.pause(); seekFrame(curFrame() + (e.shiftKey?Math.round(fps):1)); break;
+    case 'home': seekFrame(0); break;
+    case 'end': seekFrame(totalFrames()); break;
+    case 'c': case 'enter': e.preventDefault(); stopShuttle(); v.pause(); txt.focus(); break;
+    case 'i': setIn(); break;
+    case 'o': setOut(); break;
+    case 'd': pickTool('pen'); break;
+    case 'a': pickTool('arrow'); break;
+    case 'b': pickTool('rect'); break;
+    case 'e': pickTool('ellipse'); break;
+    case 's': $('safeBtn').click(); break;
+    case 'g': e.preventDefault(); goToTime(); break;
+    case 't': toggleTheme(); break;
+    case 'f': $('fsBtn').click(); break;
+    case 'm': $('muteBtn').click(); break;
+    case '[': step(-1); break;
+    case ']': step(1); break;
+  }
+});
+$('keys').onclick = () => $('keys').classList.remove('show');
+
+// ---------------- boot ----------------
+(async () => {
+  try{ const c = await api('/api/config'); if(c.ok && c.data?.agent) AGENT = c.data.agent; }catch(e){}
+  try{ const r = await api('/api/stacks'); online = r.ok; if(online) stacks = {stacks: r.data.stacks || {}, last: r.data.last || null} } catch(e){ online = false }
+  $('offline').style.display = online ? 'none' : 'block';
+  let want = new URLSearchParams(location.search).get('file') || stacks.last;
+  if(online && !want){ const f = await api('/api/files'); want = f.data?.[0] }  // fresh folder: open the newest video
+  if(online && want) openFile(want); else render();
+})();
+</script>
+</body>
+</html>
