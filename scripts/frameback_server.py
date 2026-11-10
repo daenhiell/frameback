@@ -74,6 +74,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 with open(rd.queue_path(ROOT), "a", encoding="utf-8") as f:
                     f.write(line + "\n")
                 return self._json(200, {"ok": True})
+            if u.path == "/api/frameio" and method == "POST":
+                link = (q.get("url") or "").strip()
+                host = urlparse(link).hostname or ""
+                if not (link.startswith("https://") and (host == "f.io" or host == "frame.io" or host.endswith(".frame.io"))):
+                    return self._json(400, {"error": "not a Frame.io link"})
+                # owner's share-builder link needs login; the same share opens publicly at /share/<id>/view/<file>
+                m = re.search(r"/share-builder/([0-9a-f-]{36})(?:/view/([0-9a-f-]{36}))?", link)
+                if m:
+                    link = f"https://next.frame.io/share/{m.group(1)}" + (f"/view/{m.group(2)}" if m.group(2) else "")
+                line = json.dumps({"type": "frameio", "url": link, "at": time.strftime("%Y-%m-%dT%H:%M:%S")}, ensure_ascii=False)
+                with open(rd.queue_path(ROOT), "a", encoding="utf-8") as f:
+                    f.write(line + "\n")
+                return self._json(200, {"ok": True})
             if u.path == "/api/listener":
                 return self._json(200, rd.listener_status(ROOT))
             if u.path == "/api/upload" and method == "PUT":

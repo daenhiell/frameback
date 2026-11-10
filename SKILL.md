@@ -59,6 +59,19 @@ For the video named in the Send line (`file`):
 
 `frameback.py --root R status` shows every video, version, open count and round state.
 
+## Frame.io import
+
+The **Frame.io** button in the player takes a Frame.io share link (no login) and queues it. The listener prints `FRAMEIO {"type":"frameio","url":...}` plus a `DO` line. Start at once, do not ask:
+
+1. Open the link in a browser you control (built-in browser, Playwright, or Chrome). The server already turns owner `share-builder` links into the public `/share/<id>/view/<file>` form. Never log in or enter a password; if it still asks for a passphrase or login, tell the user the share must be public.
+2. When the comments panel shows, run `assets/frameio_extract.js` in the page (JS tool). It reads Frame.io's Apollo cache and returns `{name, url, size, width, height, notes}`; `notes` is already the import-notes JSON. Do not print emails or the signed `url` back to the user.
+3. If `<root>/<name>` exists with the same byte size, it's the same video: reuse it. Otherwise download (`curl -L -o "<root>/<name>" "<url>"`; if the name is taken by a different file, add ` (Frame.io)`). The URL is signed and expires, so download right away. Check with `ffprobe`.
+4. Save `notes` to `review-data/frameio-<name>.json`. Format, if you build it by hand:
+   `{"fps": 24, "source": "frameio", "notes": [{"id": "<frame.io comment id>", "author": "...", "text": "...", "seconds": 3.2, "end_seconds": 4.0, "done": false, "created": "...", "replies": [{"author": "...", "text": "..."}]}]}`
+   Use `frame`/`end` instead of seconds if Frame.io gives frames. Leave out `seconds` for general (no-timecode) comments. A comment with a drawing: add "(had a drawing in Frame.io)" to its text.
+5. `frameback.py --root R import-notes "<name>.mp4" review-data/frameio-<name>.json`. Re-importing the same link only adds new comments and replies. It also registers the video and the open player switches to it by itself (with a toast), so the user doesn't have to open anything.
+6. Tell the user how many comments came in. Then wait for their Submit as usual (re-arm the listener).
+
 ## Rules
 
 - **Never delete or overwrite comment data.** Only change it through `frameback.py`, which bumps the revision and keeps every old copy in `review-data/history/`. Never edit the JSON by hand, and never clear the comments list, not even for testing.

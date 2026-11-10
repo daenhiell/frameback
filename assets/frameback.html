@@ -256,7 +256,8 @@ button,.btn{white-space:nowrap}
 #top > #crumb{flex-shrink:1;min-width:0}
 #fileBtn{min-width:0}
 .short{display:none}
-#chooseBtn{margin-left:8px;gap:6px;flex-shrink:0}
+#chooseBtn,#fioBtn{margin-left:8px;gap:6px;flex-shrink:0}
+@media (max-width:1060px){ #fioBtn .cl{display:none} #fioBtn{padding:6px 9px} }
 @media (max-width:1150px){ #roundTxt{display:none} }
 @media (max-width:1060px){ #chooseBtn .cl{display:none} #chooseBtn{padding:6px 9px} }
 @media (max-width:980px){ #crumb .proj,#crumb .dim{display:none} #statusLbl{display:none} #statusBtn{padding:9px 11px} }
@@ -315,6 +316,7 @@ button:active:not(:disabled){transform:scale(.95)}
   <div id="crumb"><span class="proj" id="stackName">No video</span><span class="dim">/</span>
     <button id="fileBtn" title="Versions"><span id="fileName">—</span><i data-i="chevD" class="sm"></i></button></div>
   <button id="chooseBtn" class="pillbtn" title="Pick a video from your computer to review"><i data-i="folder" class="sm"></i><span class="cl">Choose video</span></button>
+  <button id="fioBtn" class="pillbtn" title="Copy a video and its comments from a Frame.io share link"><i data-i="msg" class="sm"></i><span class="cl">Frame.io</span></button>
   <span class="spacer"></span>
   <span id="roundTxt" class="dim"></span>
   <span class="ldot" id="listenDot"></span>
@@ -598,6 +600,14 @@ setInterval(async () => {
     const list = stacks.stacks[stackKey] || [];
     if(list.length > old) pendingVersion = list[list.length-1];
   }
+  // Claude imported a video (e.g. from Frame.io): open it here
+  if(s?.ok && s.data.open?.at && s.data.open.at !== stacks.open?.at){
+    stacks.open = s.data.open;
+    if(s.data.stacks) { stacks.stacks = s.data.stacks; renderVersions() }
+    if(s.data.open.file !== file && !txt.value.trim() && !shapes.length && !attach && !drawMode){
+      await openFile(s.data.open.file); toast(`${AGENT} brought in ${s.data.open.file}${s.data.open.note ? ' · ' + s.data.open.note : ''}`);
+    } else if(s.data.open.file === file){ await loadDoc(); render(); toast(`${AGENT}: ${s.data.open.note || 'comments updated'}`) }
+  }
   // Claude's new version: open it and play from the start (waits if you're mid-comment)
   if(pendingVersion && pendingVersion !== file && !txt.value.trim() && !shapes.length && !attach && !drawMode){
     const f = pendingVersion; pendingVersion = null;
@@ -742,6 +752,15 @@ async function useLocalFile(f){
   finally { uploading = false; $('chooseBtn').disabled = false }
 }
 $('chooseBtn').onclick = () => $('fileInput').click();
+$('fioBtn').onclick = async () => {
+  if(!online) return toast('Start the Frameback server first', {kind:'warn'});
+  const link = (await ask('Paste a Frame.io share link (public, comments on)', ''))?.trim(); if(!link) return;
+  const r = await api('/api/frameio?url=' + encodeURIComponent(link), {method:'POST'});
+  if(!r.ok) return toast(r.data?.error || 'Could not queue the link', {kind:'warn'});
+  const l = await api('/api/listener').catch(()=>null);
+  toast(l?.data?.listening ? `${AGENT} is copying the video and comments. They show up in Choose / Versions when done.`
+                           : `Link saved. Start ${AGENT} listening (frameback.py listen) and it will import it.`);
+};
 $('fileInput').onchange = e => { const f = e.target.files[0]; e.target.value = ''; useLocalFile(f) };
 stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('dragover') });
 stage.addEventListener('dragleave', () => stage.classList.remove('dragover'));
@@ -1333,7 +1352,7 @@ $('keys').onclick = () => $('keys').classList.remove('show');
 // ---------------- boot ----------------
 (async () => {
   try{ const c = await api('/api/config'); if(c.ok && c.data?.agent) AGENT = c.data.agent; }catch(e){}
-  try{ const r = await api('/api/stacks'); online = r.ok; if(online) stacks = {stacks: r.data.stacks || {}, last: r.data.last || null} } catch(e){ online = false }
+  try{ const r = await api('/api/stacks'); online = r.ok; if(online) stacks = {stacks: r.data.stacks || {}, last: r.data.last || null, open: r.data.open || null} } catch(e){ online = false }
   $('offline').style.display = online ? 'none' : 'block';
   let want = new URLSearchParams(location.search).get('file') || stacks.last;
   if(online && !want){ const f = await api('/api/files'); want = f.data?.[0] }  // fresh folder: open the newest video

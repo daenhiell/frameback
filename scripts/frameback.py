@@ -149,7 +149,15 @@ def cmd_listen(a):
                 lines, pos = _new_lines(q, pos)
                 seen = set()
                 for line in lines:
-                    f = json.loads(line).get("file")
+                    item = json.loads(line)
+                    if item.get("type") == "frameio":
+                        print("FRAMEIO " + line + "\n"
+                              "DO import this Frame.io link now (see SKILL.md section 'Frame.io import'): open it, download the video into the root, "
+                              "write the comments to a JSON file, run import-notes. Do not ask first.", flush=True)
+                        if a.once:
+                            return
+                        continue
+                    f = item.get("file")
                     if f in seen:
                         continue
                     seen.add(f)
@@ -282,6 +290,61 @@ def cmd_reply(a):
     print("replied" + (" and resolved" if a.resolve else ""))
 
 
+def cmd_import_notes(a):
+    """Merge comments copied from another review tool (Frame.io) into a video's notes.
+    JSON: {"fps": 24, "source": "frameio", "notes": [{"id", "author", "text", "seconds" | "frame",
+    "end_seconds" | "end", "done", "created", "replies": [{"author", "text", "created"}]}]}
+    Re-running skips comments already imported (matched by source id) but adds their new replies."""
+    with open(a.json, encoding="utf-8") as f:
+        src = json.load(f)
+    tag = src.get("source", "frameio")
+    added = updated = 0
+
+    def fn(d):
+        nonlocal added, updated
+        if src.get("fps") and not d.get("fps"):
+            d["fps"] = float(src["fps"])
+        fps = fps_of(d)
+        have = {n.get("src"): n for n in d["notes"] if n.get("src")}
+
+        def frame(x, sec_key, frame_key):
+            if x.get(frame_key) is not None:
+                return int(x[frame_key])
+            if x.get(sec_key) is not None:
+                return int(round(float(x[sec_key]) * fps))
+            return None
+
+        for x in src.get("notes", []):
+            key = f"{tag}:{x['id']}"
+            replies = [{"id": f"{tag}-r{i}", "author": r.get("author") or "Frame.io", "text": r.get("text", ""),
+                        "created": r.get("created") or now()} for i, r in enumerate(x.get("replies") or [])]
+            if key in have:
+                n = have[key]
+                old = {(r["author"], r["text"]) for r in n.get("replies", [])}
+                new = [r for r in replies if (r["author"], r["text"]) not in old]
+                if new:
+                    n.setdefault("replies", []).extend(new); updated += 1
+                continue
+            n = {"id": f"fio{int(time.time() * 1000):x}{added}", "src": key, "author": x.get("author") or "Frame.io",
+                 "text": x.get("text", ""), "frame": frame(x, "seconds", "frame"), "created": x.get("created") or now(),
+                 "done": bool(x.get("done")), "replies": replies}
+            end = frame(x, "end_seconds", "end")
+            if end is not None and n["frame"] is not None and end > n["frame"]:
+                n["end"] = end
+            d["notes"].append(n); added += 1
+
+    rd.update_doc(a.root, a.file, fn)
+    # put it in Frameback directly: register the video and tell the open player to show it
+    file = rd.safe_name(a.file)
+    s = rd.load_stacks(a.root)
+    if not rd.stack_of(s, file):
+        s["stacks"][os.path.splitext(file)[0]] = [file]
+    s["last"] = file
+    s["open"] = {"file": file, "at": now(), "note": f"{added} new comment(s) from Frame.io" + (f", {updated} with new replies" if updated else "")}
+    rd.save_stacks(a.root, s)
+    print(f"imported {added} new comments, {updated} got new replies. The open player will switch to {file}.")
+
+
 def cmd_resolve(a):
     rd.update_doc(a.root, a.file, lambda d: find_note(d, a.ref).__setitem__("done", not a.reopen))
     print("reopened" if a.reopen else "resolved")
@@ -325,6 +388,7 @@ def main():
     s = sub.add_parser("working"); s.add_argument("file"); s.set_defaults(fn=cmd_working)
     s = sub.add_parser("done"); s.add_argument("file"); s.add_argument("--note", required=True); s.set_defaults(fn=cmd_done)
     s = sub.add_parser("reply"); s.add_argument("file"); s.add_argument("ref", help="#number or id"); s.add_argument("text"); s.add_argument("--resolve", action="store_true"); s.set_defaults(fn=cmd_reply)
+    s = sub.add_parser("import-notes", help="merge comments from Frame.io (JSON) into a video's notes"); s.add_argument("file"); s.add_argument("json"); s.set_defaults(fn=cmd_import_notes)
     s = sub.add_parser("resolve"); s.add_argument("file"); s.add_argument("ref"); s.add_argument("--reopen", action="store_true"); s.set_defaults(fn=cmd_resolve)
     s = sub.add_parser("next-name"); s.add_argument("file"); s.set_defaults(fn=cmd_next_name)
     s = sub.add_parser("add-version"); s.add_argument("file", help="the version the comments were on"); s.add_argument("new"); s.set_defaults(fn=cmd_add_version)
