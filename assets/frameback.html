@@ -153,6 +153,12 @@ aside.hidden{width:0;opacity:0;margin-left:-12px}
 #tabs button .n{color:var(--dim);font-weight:500}
 #tabs button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 #listBar{display:flex;align-items:center;gap:2px;padding:8px 14px 4px 16px}
+#selBtn{margin-left:6px;padding:5px 10px;font-size:13px}
+#selBar{display:none;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--line,rgba(127,127,127,.2));font-size:13px}
+#selBar.show{display:flex} #selBar .pillbtn{padding:4px 9px;font-size:13px;gap:4px}
+#selBar .danger:not(:disabled){color:#e5484d} #selBar button:disabled{opacity:.4;cursor:default}
+.c .csel{flex-shrink:0;width:18px;height:18px;margin-top:8px;border:2px solid currentColor;opacity:.5;border-radius:5px;display:grid;place-items:center}
+.c.sel{background:rgba(91,140,255,.12)} .c.sel .csel{opacity:1;background:#5b8cff;border-color:#5b8cff;color:#fff}
 #filterBtn,#sortBtn{font-weight:600;padding:6px 8px;font-size:15px;color:var(--text)}
 #doneBtn.on{background:var(--pill)}
 #searchRow{display:none;padding:2px 16px 8px}
@@ -174,8 +180,12 @@ aside.hidden{width:0;opacity:0;margin-left:-12px}
 .chk svg{width:12px;height:12px;stroke-width:3}
 .chk:hover{border-color:var(--text)}
 .chk.on{background:var(--strong);border-color:var(--strong);color:var(--strongText)}
-.cmore{opacity:0;padding:3px}
-.c:hover .cmore{opacity:1}
+.cmore,.cdel{opacity:.4;padding:3px}
+.c:hover .cmore,.c:hover .cdel,.cdel:focus-visible{opacity:1}
+.cdel:hover{color:#e5484d}
+.rdel{margin-left:auto;opacity:0;padding:0 4px;font-size:12px}
+.reply:hover .rdel{opacity:.7}
+.rdel:hover{opacity:1;color:#e5484d}
 .acts{display:flex;align-items:center;gap:6px;margin-top:8px}
 .pillbtn{background:var(--pill);border-radius:9px;padding:5px 11px;font-weight:600;font-size:14px;color:var(--text)}
 .pillbtn:hover{background:var(--pill2)}
@@ -370,7 +380,11 @@ button:active:not(:disabled){transform:scale(.95)}
         <span class="spacer"></span>
         <button id="sortBtn" title="Sort"><span id="sortLbl">Timecode</span><i data-i="chevD" class="sm"></i></button>
         <button id="doneBtn" title="Hide resolved"><i data-i="filter"></i></button>
+        <button id="selBtn" class="pillbtn" title="Select several comments">Select</button>
       </div>
+      <div id="selBar"><span id="selN">0 selected</span><span class="spacer"></span>
+        <button id="selAll" class="pillbtn">All</button><button id="selDone" class="pillbtn">Resolve</button>
+        <button id="selDel" class="pillbtn danger"><i data-i="trash" class="sm"></i>Delete</button><button id="selX" class="pillbtn">Cancel</button></div>
       <div id="searchRow"><input type="search" id="search" placeholder="Search comments"></div>
       <div id="list"></div>
       <div id="drawBar">
@@ -414,6 +428,7 @@ button:active:not(:disabled){transform:scale(.95)}
 const $ = id => document.getElementById(id);
 // ---------------- icons ----------------
 const ICONS = {
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
   link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
   folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', chevD:'<path d="m6 9 6 6 6-6"/>',
@@ -1101,6 +1116,37 @@ async function needName(){
   setMe(n); return true;
 }
 $('meAv').onclick = async () => { const n = (await ask('Your name', me))?.trim(); if(n){ setMe(n); render() } };
+// Select mode: tick several comments, then delete or resolve them together
+let selMode = false; const sel = new Set();
+function setSel(on){ selMode = on; sel.clear(); $('selBar').classList.toggle('show', on); $('selBtn').classList.toggle('on', on); render() }
+function renderSel(){ $('selN').textContent = sel.size + ' selected'; $('selDel').disabled = $('selDone').disabled = !sel.size }
+$('selBtn').onclick = () => setSel(!selMode);
+$('selX').onclick = () => setSel(false);
+$('selAll').onclick = () => { const ids = [...document.querySelectorAll('#list .c')].map(c=>c.dataset.id); const all = ids.every(i=>sel.has(i)); ids.forEach(i => all ? sel.delete(i) : sel.add(i)); render() };
+$('selDone').onclick = () => { const ns = doc.notes.filter(n=>sel.has(n.id)), was = ns.map(n=>n.done); ns.forEach(n=>n.done=true); save(); setSel(false);
+  toast(ns.length+' resolved', {undo:()=>{ ns.forEach((n,i)=>n.done=was[i]); save(); render() }}) };
+$('selDel').onclick = async () => {
+  const ns = doc.notes.filter(n=>sel.has(n.id)); if(!ns.length) return;
+  const before = doc.notes.slice(), removedBefore = (doc.removed||[]).slice();
+  doc.notes = doc.notes.filter(n=>!sel.has(n.id));
+  ns.forEach(n => { if(n.src) (doc.removed ||= []).push(n.src) });
+  if(sel.has(activeId)) activeId = null;
+  save(); setSel(false);
+  toast(ns.length+' comment'+(ns.length>1?'s':'')+' deleted', {undo:()=>{ doc.notes = before; doc.removed = removedBefore; save(); render() }});
+};
+// Delete a comment. Imported ones (Frame.io) are remembered so a re-import doesn't bring them back.
+function delNote(n){
+  const i = doc.notes.indexOf(n); if(i<0) return;
+  doc.notes.splice(i,1); if(n.src) (doc.removed ||= []).push(n.src);
+  if(activeId===n.id) activeId=null;
+  save(); render();
+  toast('Comment deleted', {undo:()=>{ doc.notes.splice(i,0,n); if(n.src) doc.removed = doc.removed.filter(x=>x!==n.src); save(); render() }});
+}
+document.addEventListener('keydown', e => {
+  if(e.key==='Delete' && activeId && !e.target.closest('input,textarea,[contenteditable]') && !document.querySelector('.menu,#dlg.show')){
+    const n = doc.notes.find(x=>x.id===activeId); if(n){ e.preventDefault(); delNote(n) }
+  }
+});
 async function post(){
   const t = txt.value.trim();
   if(!t && !shapes.length && !attach) return txt.focus();
@@ -1167,18 +1213,20 @@ function jump(n){
   document.querySelector(`.c[data-id="${n.id}"]`)?.scrollIntoView({block:'nearest'});
 }
 function render(){
+  if(selMode) renderSel();
   const list = $('list'), order = byTc(), shown = sorted().filter(visible);
   list.innerHTML = shown.length ? '' : `<div id="empty"><svg viewBox="0 0 24 24" width="110" height="90" class="ico" style="width:110px;height:90px">${ICONS.bubble}</svg>
     <div>${doc.notes.length ? 'Nothing matches' : 'No comments – yet'}</div>${doc.notes.length ? '' : '<button class="btn" id="getStarted">Get Started</button>'}</div>`;
   if($('getStarted')) $('getStarted').onclick = () => { v.pause(); txt.focus() };
   for(const n of shown){
     const d = document.createElement('div');
-    d.className = 'c'+(n.id===activeId?' active':'')+(n.done?' done':'')+(seenIds && !seenIds.has(n.id)?' new':''); d.dataset.id = n.id;
+    d.className = 'c'+(selMode&&sel.has(n.id)?' sel':'')+(n.id===activeId?' active':'')+(n.done?' done':'')+(seenIds && !seenIds.has(n.id)?' new':''); d.dataset.id = n.id;
     const nr = (n.replies||[]).length, showR = openReplies.has(n.id);
-    const reps = showR ? (n.replies||[]).map(r => `<div class="reply${r.author===AGENT?' claude':''}">${avatar(r.author)}<div class="body"><div class="meta"><b>${esc(r.author)}</b><span>${ago(r.created)}</span></div><div class="txt">${esc(r.text)}</div></div></div>`).join('') : '';
-    d.innerHTML = `${avatar(n.author, 1)}<div class="body">
+    const reps = showR ? (n.replies||[]).map((r,ri) => `<div class="reply${r.author===AGENT?' claude':''}">${avatar(r.author)}<div class="body"><div class="meta"><b>${esc(r.author)}</b><span>${ago(r.created)}</span><button class="rdel" data-a="delr" data-ri="${ri}" title="Delete reply">✕</button></div><div class="txt">${esc(r.text)}</div></div></div>`).join('') : '';
+    d.innerHTML = `${selMode?`<span class="csel">${sel.has(n.id)?icon('check','sm'):''}</span>`:''}${avatar(n.author, 1)}<div class="body">
       <div class="meta"><b>${esc(n.author)}</b><span>${ago(n.created)}</span><span class="spacer"></span>
         <button class="cmore" data-a="more" title="More">${icon('more','sm')}</button>
+        <button class="cdel" data-a="del" title="Delete comment (Delete key)">${icon('trash','sm')}</button>
         <span class="chk${n.done?' on':''}" data-a="done" title="${n.done?'Unresolve':'Resolve'}">${icon('check')}</span></div>
       <div class="txt"><span class="tcchip">${label(n)}</span>${n.ink?'<span class="dim">✎ </span>':''}${esc(n.text || '')}</div>
       ${n.image ? `<img class="att" src="${n.image}">` : ''}
@@ -1188,18 +1236,22 @@ function render(){
       ${replyOpen===n.id ? `<div class="rbox"><input type="text" placeholder="Reply…" data-r="1"><button class="btn" data-a="send">Reply</button></div>` : ''}
     </div>`;
     d.onclick = async e => {
+      if(selMode){ sel.has(n.id) ? sel.delete(n.id) : sel.add(n.id); render(); return }
       const a = e.target.closest('[data-a]')?.dataset.a;
       if(e.target.dataset.r) return;
       if(a==='done'){ n.done=!n.done; save(); render(); toast(n.done?'Comment resolved':'Comment reopened', {undo:()=>{ n.done=!n.done; save(); render() }}); return }
+      if(a==='del'){ delNote(n); return }
+      if(a==='delr'){ const i=+e.target.closest('[data-ri]').dataset.ri, r=n.replies[i], rk=n.src ? `${n.src}|${r.author}|${r.text}` : null; n.replies.splice(i,1); if(rk) (doc.removed ||= []).push(rk); save(); render(); toast('Reply deleted', {undo:()=>{ n.replies.splice(i,0,r); if(rk) doc.removed = doc.removed.filter(x=>x!==rk); save(); render() }}); return }
       if(a==='toggleR'){ showR ? openReplies.delete(n.id) : openReplies.add(n.id); render(); return }
       if(a==='more'){ menu(e.target.closest('button'), [
         {label:'Edit', click:async()=>{ const t=await ask('Edit comment', n.text, 'Save'); if(t!=null){ n.text=t.trim(); n.edited=new Date().toISOString(); save(); render() } }},
-        {label:'Delete', click:()=>{ const i = doc.notes.indexOf(n); doc.notes.splice(i,1); save(); render(); toast('Comment deleted', {undo:()=>{ doc.notes.splice(i,0,n); save(); render() }}) }},
+        {label:'Delete', click:()=>delNote(n)},
       ], 'right'); return }
       if(a==='reply'){ replyOpen = replyOpen===n.id ? null : n.id; openReplies.add(n.id); render(); document.querySelector(`.c[data-id="${n.id}"] [data-r]`)?.focus(); return }
       if(a==='send'){ sendReply(n, d); return }
       jump(n);
     };
+    d.oncontextmenu = e => { e.preventDefault(); d.querySelector('.cmore').click() };
     const ri = d.querySelector('[data-r]');
     if(ri) ri.addEventListener('keydown', e => { e.stopPropagation(); if(e.key==='Enter') sendReply(n, d); if(e.key==='Escape'){ replyOpen=null; render() } });
     list.appendChild(d);

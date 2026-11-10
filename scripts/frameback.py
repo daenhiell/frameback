@@ -306,6 +306,7 @@ def cmd_import_notes(a):
             d["fps"] = float(src["fps"])
         fps = fps_of(d)
         have = {n.get("src"): n for n in d["notes"] if n.get("src")}
+        removed = set(d.get("removed") or [])  # deleted in the player: don't bring them back
 
         def frame(x, sec_key, frame_key):
             if x.get(frame_key) is not None:
@@ -316,12 +317,14 @@ def cmd_import_notes(a):
 
         for x in src.get("notes", []):
             key = f"{tag}:{x['id']}"
+            if key in removed:
+                continue
             replies = [{"id": f"{tag}-r{i}", "author": r.get("author") or "Frame.io", "text": r.get("text", ""),
                         "created": r.get("created") or now()} for i, r in enumerate(x.get("replies") or [])]
             if key in have:
                 n = have[key]
                 old = {(r["author"], r["text"]) for r in n.get("replies", [])}
-                new = [r for r in replies if (r["author"], r["text"]) not in old]
+                new = [r for r in replies if (r["author"], r["text"]) not in old and f"{key}|{r['author']}|{r['text']}" not in removed]
                 if new:
                     n.setdefault("replies", []).extend(new); updated += 1
                 continue
