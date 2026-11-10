@@ -316,7 +316,7 @@ button:active:not(:disabled){transform:scale(.95)}
   <div id="crumb"><span class="proj" id="stackName">No video</span><span class="dim">/</span>
     <button id="fileBtn" title="Versions"><span id="fileName">—</span><i data-i="chevD" class="sm"></i></button></div>
   <button id="chooseBtn" class="pillbtn" title="Pick a video from your computer to review"><i data-i="folder" class="sm"></i><span class="cl">Choose video</span></button>
-  <button id="fioBtn" class="pillbtn" title="Copy a video and its comments from a Frame.io share link"><i data-i="msg" class="sm"></i><span class="cl">Frame.io</span></button>
+  <button id="fioBtn" class="pillbtn" title="Copy a video and its comments from a Frame.io share link"><i data-i="link" class="sm"></i><span class="cl">Frame.io</span></button>
   <span class="spacer"></span>
   <span id="roundTxt" class="dim"></span>
   <span class="ldot" id="listenDot"></span>
@@ -414,6 +414,7 @@ button:active:not(:disabled){transform:scale(.95)}
 const $ = id => document.getElementById(id);
 // ---------------- icons ----------------
 const ICONS = {
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
   folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', chevD:'<path d="m6 9 6 6 6-6"/>',
   download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
