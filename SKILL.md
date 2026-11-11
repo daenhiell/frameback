@@ -13,8 +13,12 @@ Pass `--agent <your name>` (e.g. `--agent Codex`) so the Send button and your re
 
 ## 1. Start the player
 
-1. Start the server in the **background** (it runs until stopped):
-   `frameback.py --root "<folder>" --agent <name> serve --port 8765`
+1. Start the server: `frameback.py --root "<folder>" --agent <name> start`
+   It launches the server detached (it keeps running after your command ends) and checks that it answers. Wait for `OK`.
+   - **Codex (and any sandboxed agent):** the sandbox firewalls local ports, so a server started inside it makes the browser time out (`ERR_CONNECTION_TIMED_OUT`). Run `start` **outside the sandbox** (request escalated permissions, `sandbox_permissions: require_escalated`). If it prints `BLOCKED` or `FAILED`, do that, or ask the user to double-click `Frameback.bat`.
+   - Run the scripts from this skill's own folder. Never copy the skill into the project or workspace (old copies miss fixes).
+   - Run `listen`/`wait` and the edit commands outside the sandbox too if they fail to see Submits or write files.
+   - `serve` runs the same server in the foreground, for agents with a real background runner (e.g. Claude Code's `run_in_background`).
 2. **Open the player inside your own AI app's built-in browser, not the user's system browser.** This is required.
    - Claude desktop app: open `http://127.0.0.1:8765/` in the Browser pane (e.g. `preview_start` with that `url`, or `navigate`).
    - Codex or any other app with a built-in/in-app browser: open the URL there.

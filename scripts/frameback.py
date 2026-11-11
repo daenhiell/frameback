@@ -2,7 +2,8 @@
 
 All commands take --root "<folder with the videos>" (default: current folder).
 
-  serve        start the Frameback server (keep it running in the background)
+  start        start the server detached and check it answers (best for agents)
+  serve        run the Frameback server in the foreground
   launcher     write a double-clickable "Frameback.bat" into the folder
   status       versions, open comments and Send rounds for every video
   wait         block until the user clicks Send, then print what was sent
@@ -78,6 +79,71 @@ def cmd_serve(a):
     # Never opens the system browser: the page belongs in the AI app's built-in browser.
     print(f"Open http://127.0.0.1:{a.port}/ in your AI app's built-in browser.", flush=True)
     sys.exit(subprocess.call([sys.executable, srv, "--root", a.root, "--port", str(a.port), "--agent", a.agent]))
+
+
+def _alive(port, wait=0.0):
+    import urllib.request
+    end = time.time() + wait
+    while True:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/config", timeout=2) as r:
+                return r.status == 200
+        except Exception:
+            if time.time() >= end:
+                return False
+            time.sleep(0.5)
+
+
+def _sandboxed():
+    return any(os.environ.get(k) for k in ("CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED"))
+
+
+def cmd_start(a):
+    """Start the server detached (survives the agent's command ending) and check it answers."""
+    url = f"http://127.0.0.1:{a.port}/"
+    if _alive(a.port):
+        import urllib.request
+        try:
+            with urllib.request.urlopen(url + "api/config", timeout=2) as r:
+                root = json.load(r).get("root", "")
+        except Exception:
+            root = ""
+        if root and os.path.normcase(os.path.abspath(root)) != os.path.normcase(os.path.abspath(a.root)):
+            print(f"OTHER FOLDER: port {a.port} already serves {root}. Use --port {a.port + 1} for this folder.")
+            sys.exit(4)
+        print(f"OK already running: open {url} in your AI app's built-in browser.")
+        return
+    if _sandboxed():
+        print("BLOCKED: this command runs inside the agent's sandbox, which firewalls local ports, so the "
+              "browser would time out. Re-run this exact command outside the sandbox (Codex: request escalated "
+              "permissions / sandbox_permissions=require_escalated), or ask the user to double-click Frameback.bat.")
+        sys.exit(2)
+    import socket
+    try:
+        with socket.socket() as t:
+            t.bind(("127.0.0.1", a.port))
+    except OSError:
+        print(f"PORT BUSY: something holds port {a.port} but does not answer (often a server an agent started "
+              "inside its sandbox). Kill the old python frameback_server.py / frameback.py serve processes, "
+              "or pass --port 8766.")
+        sys.exit(3)
+    srv = os.path.join(HERE, "frameback_server.py")
+    exe = sys.executable
+    kw = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "close_fds": True}
+    if os.name == "nt":
+        w = os.path.join(os.path.dirname(exe), "pythonw.exe")
+        if os.path.exists(w):
+            exe = w
+        kw["creationflags"] = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED | NEW_GROUP | NO_WINDOW
+    else:
+        kw["start_new_session"] = True
+    subprocess.Popen([exe, srv, "--root", a.root, "--port", str(a.port), "--agent", a.agent], **kw)
+    if _alive(a.port, wait=10):
+        print(f"OK started: open {url} in your AI app's built-in browser.")
+    else:
+        print(f"FAILED: server did not answer on {url} within 10s. If you run inside a sandbox, re-run outside it "
+              "(Codex: escalated permissions), or ask the user to double-click Frameback.bat.")
+        sys.exit(1)
 
 
 def cmd_launcher(a):
@@ -379,6 +445,7 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("serve"); s.add_argument("--port", type=int, default=8765); s.set_defaults(fn=cmd_serve)
+    s = sub.add_parser("start", help="start the server detached and check it answers (use this from agents)"); s.add_argument("--port", type=int, default=8765); s.set_defaults(fn=cmd_start)
     s = sub.add_parser("launcher"); s.add_argument("--port", type=int, default=8765); s.set_defaults(fn=cmd_launcher)
     sub.add_parser("status").set_defaults(fn=cmd_status)
     s = sub.add_parser("listen", help="background listener: heartbeat + one SEND line per Submit"); s.add_argument("--timeout", type=float, default=0, help="seconds, 0 = forever"); s.set_defaults(fn=cmd_listen, once=False)
