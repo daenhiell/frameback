@@ -25,8 +25,10 @@ For Codex use `~/.codex/skills/frameback`. Other agents: tell them to read `SKIL
 ## Quick start
 
 ```bash
-python scripts/frameback.py --root "/path/to/videos" --agent Claude serve --port 8765
+python scripts/frameback.py --root "/path/to/videos" --agent Claude start
 ```
+
+`start` runs the server in the background and checks it answers (`serve` runs it in the foreground). Codex: its sandbox blocks local ports, so allow `start` to run outside the sandbox, or the page times out.
 
 Open `http://127.0.0.1:8765/` in your AI app's built-in browser. Then ask your agent to listen for Submit (see `SKILL.md`).
 
